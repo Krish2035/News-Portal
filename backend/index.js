@@ -8,7 +8,7 @@ dotenv.config();
 const connectDB = async () => {
     try{
         await mongoose.connect(process.env.MONGO_URL)
-        console.log("connected")
+        console.log("Database is connected")
     }catch(err){
         console.error(err)
     }
@@ -25,3 +25,15 @@ connectDB();
 app.listen(3000, () => {
     console.log("Server is running on port 3000!");
 });
+
+app.use((err, req, res, next) => {
+    const statusCode = err.statusCode || 500
+
+    const message = err.message || "Internal Server error"
+
+    res.status(statusCode).json({
+        success: false,
+        statusCode,
+        message
+    })
+})
