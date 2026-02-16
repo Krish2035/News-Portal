@@ -15,16 +15,10 @@ const connectDB = async () => {
 };
 
 const app = express()
-
-// parse JSON and urlencoded bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// mount routes before starting the server
 app.use('/api/auth', authRoutes);
-
-// simple health check
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 connectDB();
 
