@@ -7,6 +7,7 @@ import About from "./pages/About"
 import Dashboard from "./pages/Dashboard"
 import NewsArticles from "./pages/NewsArticles"
 import Header from "./components/shared/Header"
+import Footer from "./components/shared/Footer"
 import { Toaster } from "./components/ui/sonner"
 
 const App = () => {
@@ -22,6 +23,8 @@ const App = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/news" element={<NewsArticles />} />
       </Routes>
+
+      <Footer />
 
       <Toaster />
     </BrowserRouter>
