@@ -1,8 +1,10 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react"; // Added useState
+import { Link, useNavigate } from "react-router-dom"; // Added useNavigate
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 const schema = z.object({
   email: z.string().email("Invalid email address"),
@@ -10,6 +12,10 @@ const schema = z.object({
 });
 
 const SignInForm = () => {
+  const navigate = useNavigate(); // Initialize navigate
+  const [loading, setLoading] = useState(false); // Initialize loading
+  const [errorMessage, setErrorMessage] = useState(null); // Initialize error message
+
   const {
     register,
     handleSubmit,
@@ -18,14 +24,42 @@ const SignInForm = () => {
     resolver: zodResolver(schema),
   });
 
-  const onSubmit = (data) => {
-    console.log(data);
-  };
+  async function onSubmit(values) {
+    try {
+      setLoading(true);
+      setErrorMessage(null);
+
+      const res = await fetch("/api/auth/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+
+      const data = await res.json();
+
+      // Important: Use !res.ok to catch the 404 error you saw earlier
+      if (!res.ok || data.success === false) {
+        setLoading(false);
+        setErrorMessage(data.message || "Sign in failed!");
+        toast.error(data.message || "Sign in failed!");
+        return;
+      }
+
+      setLoading(false);
+      if (res.ok) {
+        toast.success("Sign in Successful!");
+        navigate("/");
+      }
+    } catch (error) {
+      setErrorMessage(error.message);
+      setLoading(false);
+      toast.error("Something went wrong!");
+    }
+  }
 
   return (
     <div className="min-h-screen mt-20">
       <div className="flex p-3 max-w-3xl sm:max-w-5xl mx-auto flex-col md:flex-row md:items-center gap-5">
-        {/* left defined */}
         <div className="flex-1">
           <Link
             to={"/"}
@@ -34,23 +68,19 @@ const SignInForm = () => {
             <span className="text-slate-500">Morning</span>
             <span className="text-slate-900">Dispatch</span>
           </Link>
-
           <h2 className="text-[24px] md:text-[30px] font-bold leading-[140%] tracking-tighter pt-5 sm:pt-12">
-            Create a new Account
+            Sign in to your account.
           </h2>
-
-          <p className="text-slate-500 text-[14px] font-medium leading-[140%] md:text-[16px] md:font-normal mt-2">
-            Welcome to Morning Dispatch, Please provide your details
+          <p className="text-slate-500 text-[14px] font-medium mt-2">
+            Welcome back, Please provide your details as required
           </p>
         </div>
 
-        {/* right defined */}
         <div className="flex-1">
           <form
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-4 bg-white p-6 rounded shadow-md"
           >
-
             <div>
               <label className="block text-sm font-medium text-slate-700">
                 Email
@@ -59,7 +89,7 @@ const SignInForm = () => {
                 {...register("email")}
                 type="text"
                 placeholder="xyz@gmail.com"
-                className="mt-1 block w-full rounded border-gray-300 shadow-sm p-3 mt-2"
+                className="mt-1 block w-full rounded border-gray-300 shadow-sm p-3"
               />
               {errors.email && (
                 <p className="text-red-500 text-sm mt-1">
@@ -76,7 +106,7 @@ const SignInForm = () => {
                 {...register("password")}
                 type="password"
                 placeholder="Enter your password here..."
-                className="mt-1 block w-full rounded border-gray-300 shadow-sm p-3 mt-2"
+                className="mt-1 block w-full rounded border-gray-300 shadow-sm p-3"
               />
               {errors.password && (
                 <p className="text-red-500 text-sm mt-1">
@@ -85,16 +115,27 @@ const SignInForm = () => {
               )}
             </div>
 
-            <div>
-              <button
-                type="submit"
-                className="bg-blue-500 pt-3 pb-3 rounded-2xl mt-2.5 w-full"
-              >
-                Submit
-              </button>
-            </div>
+            <Button
+              type="submit"
+              className="bg-blue-500 py-6 rounded-2xl w-full"
+              disabled={loading}
+            >
+              {loading ? (
+                <span className="animate-pulse">Loading...</span>
+              ) : (
+                "Sign In"
+              )}
+            </Button>
+
+            {/* Display the 404 message from the server here */}
+            {errorMessage && (
+              <p className="text-red-500 text-center text-sm mt-2">
+                {errorMessage}
+              </p>
+            )}
+
             <div className="flex gap-2 text-sm mt-5">
-              <span>Have an Account?</span>
+              <span>Don't have an Account?</span>
               <Link to={"/sign-up"} className="text-blue-500">
                 Sign Up
               </Link>
