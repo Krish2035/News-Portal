@@ -37,3 +37,5 @@ app.use((err, req, res, next) => {
         message
     })
 })
+
+console.log("MONGO_URL=", process.env.MONGO_URL);
