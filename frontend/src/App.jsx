@@ -20,7 +20,11 @@ const App = () => {
 
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+
+        <Route element={<privateRoute />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+        </Route>
+        
         <Route path="/news" element={<NewsArticles />} />
       </Routes>
 
@@ -28,7 +32,7 @@ const App = () => {
 
       <Toaster />
     </BrowserRouter>
-  )
+  );
 }
 
 export default App
