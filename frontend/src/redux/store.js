@@ -16,7 +16,7 @@ import storage from "redux-persist/es/storage"; // localStorage for web
 // 1. Combine all reducers
 const rootReducer = combineReducers({
   user: userReducer,
-});
+})
 
 // 2. Persist configuration
 const persistConfig = {

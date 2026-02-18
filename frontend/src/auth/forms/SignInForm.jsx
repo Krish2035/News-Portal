@@ -11,6 +11,7 @@ import {
   signInStart,
   signInSuccess,
 } from "@/redux/user/userSlice";
+import GoogleAuth from "@/components/shared/GoogleAuth";
 
 const schema = z.object({
   email: z.string().email("Invalid email address"),
@@ -130,6 +131,8 @@ const SignInForm = () => {
             >
               {loading ? "Loading..." : "Sign In"}
             </Button>
+
+            <GoogleAuth />
 
             <div className="flex gap-2 text-sm mt-5">
               <span>Don't have an Account?</span>

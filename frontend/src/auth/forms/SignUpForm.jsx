@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import GoogleAuth from "@/components/shared/GoogleAuth";
 
 const formSchema = z.object({
   username: z
@@ -161,6 +162,8 @@ const SignUpForm = () => {
             >
               {loading ? "Loading..." : "Sign Up"}
             </button>
+
+            <GoogleAuth />
 
             <div className="flex gap-2 text-sm mt-5">
               <span>Have an Account?</span>
