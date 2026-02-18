@@ -1,10 +1,16 @@
-import React, { useState } from "react"; // Added useState
-import { Link, useNavigate } from "react-router-dom"; // Added useNavigate
+import React from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  signInFailure,
+  signInStart,
+  signInSuccess,
+} from "@/redux/user/userSlice";
 
 const schema = z.object({
   email: z.string().email("Invalid email address"),
@@ -12,9 +18,10 @@ const schema = z.object({
 });
 
 const SignInForm = () => {
-  const navigate = useNavigate(); // Initialize navigate
-  const [loading, setLoading] = useState(false); // Initialize loading
-  const [errorMessage, setErrorMessage] = useState(null); // Initialize error message
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const { loading, error } = useSelector((state) => state.user);
 
   const {
     register,
@@ -26,8 +33,7 @@ const SignInForm = () => {
 
   async function onSubmit(values) {
     try {
-      setLoading(true);
-      setErrorMessage(null);
+      dispatch(signInStart());
 
       const res = await fetch("/api/auth/signin", {
         method: "POST",
@@ -37,22 +43,19 @@ const SignInForm = () => {
 
       const data = await res.json();
 
-      // Important: Use !res.ok to catch the 404 error you saw earlier
-      if (!res.ok || data.success === false) {
-        setLoading(false);
-        setErrorMessage(data.message || "Sign in failed!");
+      // ✅ Proper error handling
+      if (!res.ok) {
+        dispatch(signInFailure(data.message));
         toast.error(data.message || "Sign in failed!");
         return;
       }
 
-      setLoading(false);
-      if (res.ok) {
-        toast.success("Sign in Successful!");
-        navigate("/");
-      }
-    } catch (error) {
-      setErrorMessage(error.message);
-      setLoading(false);
+      // ✅ Success
+      dispatch(signInSuccess(data));
+      toast.success("Sign in Successful!");
+      navigate("/");
+    } catch (err) {
+      dispatch(signInFailure(err.message));
       toast.error("Something went wrong!");
     }
   }
@@ -68,9 +71,11 @@ const SignInForm = () => {
             <span className="text-slate-500">Morning</span>
             <span className="text-slate-900">Dispatch</span>
           </Link>
+
           <h2 className="text-[24px] md:text-[30px] font-bold leading-[140%] tracking-tighter pt-5 sm:pt-12">
             Sign in to your account.
           </h2>
+
           <p className="text-slate-500 text-[14px] font-medium mt-2">
             Welcome back, Please provide your details as required
           </p>
@@ -81,6 +86,7 @@ const SignInForm = () => {
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-4 bg-white p-6 rounded shadow-md"
           >
+            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-slate-700">
                 Email
@@ -98,6 +104,7 @@ const SignInForm = () => {
               )}
             </div>
 
+            {/* Password */}
             <div>
               <label className="block text-sm font-medium text-slate-700">
                 Password
@@ -115,24 +122,14 @@ const SignInForm = () => {
               )}
             </div>
 
+            {/* Button */}
             <Button
               type="submit"
               className="bg-blue-500 py-6 rounded-2xl w-full"
               disabled={loading}
             >
-              {loading ? (
-                <span className="animate-pulse">Loading...</span>
-              ) : (
-                "Sign In"
-              )}
+              {loading ? "Loading..." : "Sign In"}
             </Button>
-
-            {/* Display the 404 message from the server here */}
-            {errorMessage && (
-              <p className="text-red-500 text-center text-sm mt-2">
-                {errorMessage}
-              </p>
-            )}
 
             <div className="flex gap-2 text-sm mt-5">
               <span>Don't have an Account?</span>
@@ -141,6 +138,11 @@ const SignInForm = () => {
               </Link>
             </div>
           </form>
+
+          {/* ✅ Redux error display */}
+          {error && (
+            <p className="text-red-500 text-center text-sm mt-2">{error}</p>
+          )}
         </div>
       </div>
     </div>
