@@ -63,10 +63,11 @@ const SignUpForm = () => {
       toast.success("Sign up Successful!");
       setLoading(false);
       navigate("/sign-in");
-    } catch (error) {
+    } catch (err) {
       setErrorMessage("Unable to connect to the server.");
-      toast.error("Something went wrong!");
+      toast.err("Something went wrong!");
       setLoading(false);
+      console.log(err);
     }
   }
 
