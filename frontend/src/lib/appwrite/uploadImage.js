@@ -1,4 +1,4 @@
-import { ImageGravity } from "appwrite";
+import { ID, ImageGravity } from "appwrite";
 import {appWriteConfig, storage} from "./config"
 
 export async function uploadFile(file) {

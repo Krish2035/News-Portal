@@ -12,7 +12,7 @@ export const signup = async(req, res, next) => {
         return next(errorHandler(400, "All fields are required"))
     }
 
-    const hashedPassword = bcryptjs.hashSync(password, 10)
+    const hashedPassword = await bcryptjs.hash(password, 10);
 
     const newUser = new User({
         username,
@@ -47,7 +47,10 @@ export const signin = async(req, res, next) => {
             return next(errorHandler(404, "User not found"))
         }
 
-        const validPassword = bcryptjs.compareSync(password, validUser.password)
+        const validPassword = await bcryptjs.compare(
+          password,
+          validUser.password,
+        );
 
         if(!validPassword){
             return next(errorHandler(400, "Wrong Credentials"))
@@ -84,7 +87,7 @@ export const google = async(req, res, next) => {
           Math.random().toString(36).slice(-8) +
           Math.random().toString(36).slice(-8)
 
-        const hashedPassword = bcryptjs.hashSync(generatedPassword, 10)
+        const hashedPassword = await bcryptjs.hash(generatedPassword, 10);
 
         const newUser = new User({
             username: name.toLowerCase().split(" ").join("") + Math.random().toString(9).slice(-4),
