@@ -45,7 +45,10 @@ const CreatePost = () => {
       setFormData((prev) => ({ ...prev, image: postImageUrl }));
 
       toast.success("Image uploaded successfully!");
-      setImageUploading(false);
+      
+      if(postImageUrl){
+        setImageUploading(false)
+      }
     } catch (error) {
       console.error("Upload Error:", error);
       setImageUploadError("Image upload failed");
@@ -108,6 +111,7 @@ const CreatePost = () => {
             <SelectTrigger className="w-full sm:w-1/4 h-12 border border-slate-400">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
+
             <SelectContent>
               <SelectGroup>
                 <SelectLabel>Category</SelectLabel>
@@ -125,6 +129,7 @@ const CreatePost = () => {
             accept="image/*"
             onChange={(e) => setFile(e.target.files[0])}
           />
+
           <Button
             type="button"
             className="bg-slate-700"
@@ -136,7 +141,7 @@ const CreatePost = () => {
         </div>
 
         {imageUploadError && (
-          <p className="text-red-500 text-sm">{imageUploadError}</p>
+          <p className="text-red-600 text-sm">{imageUploadError}</p>
         )}
 
         {/* --- CORRECTED IMAGE PREVIEW SECTION --- */}
