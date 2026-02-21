@@ -1,26 +1,93 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Select,
   SelectContent,
   SelectGroup,
-  SelectItem, // Fixed capitalization
+  SelectItem,
   SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-// 1. Change the import to react-quill-new
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import { Button } from "@/components/ui/button";
+import { getFilePreview, uploadFile } from "@/lib/appwrite/uploadImage";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const CreatePost = () => {
+  const navigate = useNavigate();
+
+  const [file, setFile] = useState(null);
+  const [imageUploadError, setImageUploadError] = useState(null);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [formData, setFormData] = useState({});
+  const [publishError, setPublishError] = useState(null);
+
+  const handleUploadImage = async () => {
+    try {
+      if (!file) {
+        setImageUploadError("Please select an image!");
+        toast.error("Please select an image!");
+        return;
+      }
+      setImageUploading(true);
+      setImageUploadError(null);
+
+      // 1. Upload the file to Appwrite
+      const uploadedFile = await uploadFile(file);
+
+      // 2. Get the Preview URL string
+      // Ensure your lib/appwrite/uploadImage.js function returns result.href
+      const postImageUrl = getFilePreview(uploadedFile.$id);
+
+      // 3. Update state with the valid URL string
+      setFormData((prev) => ({ ...prev, image: postImageUrl }));
+
+      toast.success("Image uploaded successfully!");
+      setImageUploading(false);
+    } catch (error) {
+      console.error("Upload Error:", error);
+      setImageUploadError("Image upload failed");
+      toast.error("Image upload failed");
+      setImageUploading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/post/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setPublishError(data.message);
+        toast.error(data.message || "Failed to publish post");
+        return;
+      }
+
+      setPublishError(null);
+      toast.success("Post published successfully!");
+      navigate(`/post/${data.slug}`);
+    } catch (error) {
+      setPublishError("Something went wrong");
+      toast.error("Something went wrong");
+    }
+  };
+
   return (
     <div className="p-3 max-w-3xl mx-auto min-h-screen">
       <h1 className="text-center text-3xl my-7 font-semibold text-slate-700">
         Create a Post
       </h1>
 
-      <form className="flex flex-col gap-4">
+      <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <div className="flex flex-col gap-4 sm:flex-row justify-between">
           <input
             type="text"
@@ -28,17 +95,22 @@ const CreatePost = () => {
             required
             id="title"
             className="p-3 w-full sm:w-3/4 h-12 border border-slate-400 rounded-md focus:outline-none"
+            onChange={(e) =>
+              setFormData({ ...formData, title: e.target.value })
+            }
           />
 
-          <Select>
+          <Select
+            onValueChange={(value) =>
+              setFormData({ ...formData, category: value })
+            }
+          >
             <SelectTrigger className="w-full sm:w-1/4 h-12 border border-slate-400">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
-
             <SelectContent>
               <SelectGroup>
                 <SelectLabel>Category</SelectLabel>
-                {/* 2. Fixed 'selectItem' to 'SelectItem' */}
                 <SelectItem value="worldnews">World News</SelectItem>
                 <SelectItem value="sportsnews">Sports News</SelectItem>
                 <SelectItem value="localnews">Local News</SelectItem>
@@ -48,18 +120,52 @@ const CreatePost = () => {
         </div>
 
         <div className="flex gap-4 items-center justify-between border-4 border-slate-600 border-dotted p-3">
-          <input type="file" accept="image/*" />
-          <Button type="button" className="bg-slate-700">
-            Upload Image
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setFile(e.target.files[0])}
+          />
+          <Button
+            type="button"
+            className="bg-slate-700"
+            onClick={handleUploadImage}
+            disabled={imageUploading}
+          >
+            {imageUploading ? "Uploading..." : "Upload Image"}
           </Button>
         </div>
 
-        {/* 3. ReactQuill-new works perfectly here with React 18/19 */}
-        <ReactQuill
-          theme="snow"
-          placeholder="Write something here..."
-          className="h-72 mb-12"
-        />
+        {imageUploadError && (
+          <p className="text-red-500 text-sm">{imageUploadError}</p>
+        )}
+
+        {/* --- CORRECTED IMAGE PREVIEW SECTION --- */}
+        {formData.image && (
+          <div className="relative">
+            <img
+              src={formData.image}
+              alt="Uploaded preview"
+              /* crossOrigin is vital for fetching from Appwrite Cloud to localhost */
+              crossOrigin="anonymous"
+              className="w-full h-72 object-cover rounded-md mt-4 border border-slate-200 shadow-sm"
+              onError={(e) => {
+                console.error(
+                  "Image preview failed to render. Check Appwrite Platforms/Permissions.",
+                );
+                toast.error("Preview failed to load. Check console.");
+              }}
+            />
+          </div>
+        )}
+
+        <div className="h-72 mb-12">
+          <ReactQuill
+            theme="snow"
+            placeholder="Write something here..."
+            className="h-full"
+            onChange={(value) => setFormData({ ...formData, content: value })}
+          />
+        </div>
 
         <Button
           type="submit"
@@ -67,6 +173,7 @@ const CreatePost = () => {
         >
           Publish Your Article
         </Button>
+        {publishError && <p className="text-red-500 mt-5">{publishError}</p>}
       </form>
     </div>
   );
