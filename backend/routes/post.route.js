@@ -7,5 +7,6 @@ const router = express.Router();
 // The verifyToken middleware checks for the "access_token" cookie.
 // If valid, it attaches the user to req.user and calls next() to run create.
 router.post("/create", verifyToken, create);
+router.get("/getposts", getPosts);
 
 export default router;

@@ -1,4 +1,4 @@
-PUT http://localhost:3000/api/user/update/6996d712c86c4ce2187a11b3
+PUT http://localhost:3000/api/post/getposts
 Content-Type: application/json
 
 {
