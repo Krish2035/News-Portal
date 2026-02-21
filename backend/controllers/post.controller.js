@@ -1,31 +1,33 @@
-import { errorHandler } from "../utils/error.js"
+import Post from "../models/post.model.js"; // ADD THIS LINE
+import { errorHandler } from "../utils/error.js";
 
-export const create = async(req, res, next) => {
-    if(!req.user.isAdmin) {
-        return next(errorHandler(403, "You are not authorized to create a post!"))
-    }
+export const create = async (req, res, next) => {
+  // Check if user is admin (req.user comes from your verifyToken middleware)
+  if (!req.user.isAdmin) {
+    return next(errorHandler(403, "You are not authorized to create a post!"));
+  }
 
-    if(!req.body.title || !req.body.content){
-        return next(errorHandler(400, "Please provide all the required fields!"))
-    }
+  if (!req.body.title || !req.body.content) {
+    return next(errorHandler(400, "Please provide all the required fields!"));
+  }
 
-    const slug = req.body.title
-        .split(" ")
-        .join("-")
-        .toLowerCase()
-        .replace(/[^a-zA-Z0-9-]/g, "")
+  const slug = req.body.title
+    .split(" ")
+    .join("-")
+    .toLowerCase()
+    .replace(/[^a-zA-Z0-9-]/g, "");
 
-    const newPost = new Post({
-        ...req.body,
-        slug,
-        userId: req.user.id,
-    })
+  const newPost = new Post({
+    ...req.body,
+    slug,
+    userId: req.user.id,
+  });
 
-    try {
-        const savedPost = await newPost.save()
-        
-        res.status(201).json(savedPost)
-    } catch (error) {
-        next(error)
-    }
-}
+  try {
+    const savedPost = await newPost.save();
+    res.status(201).json(savedPost);
+  } catch (error) {
+    // If there is a duplicate slug or database error, it goes here
+    next(error);
+  }
+};

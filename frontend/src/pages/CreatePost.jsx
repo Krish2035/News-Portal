@@ -38,17 +38,13 @@ const CreatePost = () => {
       const uploadedFile = await uploadFile(file);
 
       // 2. Get the Preview URL string
-      // Ensure your lib/appwrite/uploadImage.js function returns result.href
       const postImageUrl = getFilePreview(uploadedFile.$id);
 
       // 3. Update state with the valid URL string
       setFormData((prev) => ({ ...prev, image: postImageUrl }));
 
       toast.success("Image uploaded successfully!");
-      
-      if(postImageUrl){
-        setImageUploading(false)
-      }
+      setImageUploading(false);
     } catch (error) {
       console.error("Upload Error:", error);
       setImageUploadError("Image upload failed");
@@ -60,13 +56,16 @@ const CreatePost = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // THE FIX FOR 401: Include credentials so cookies are sent to the backend
       const res = await fetch("/api/post/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include", // This sends your auth token/cookies to port 3000
         body: JSON.stringify(formData),
       });
+
       const data = await res.json();
 
       if (!res.ok) {
@@ -79,8 +78,9 @@ const CreatePost = () => {
       toast.success("Post published successfully!");
       navigate(`/post/${data.slug}`);
     } catch (error) {
-      setPublishError("Something went wrong");
+      setPublishError("Something went wrong! Please try again.");
       toast.error("Something went wrong");
+      console.error(error);
     }
   };
 
@@ -109,7 +109,7 @@ const CreatePost = () => {
             }
           >
             <SelectTrigger className="w-full sm:w-1/4 h-12 border border-slate-400">
-              <SelectValue placeholder="Category" />
+              <SelectValue placeholder="Select a Category" />
             </SelectTrigger>
 
             <SelectContent>
@@ -144,20 +144,17 @@ const CreatePost = () => {
           <p className="text-red-600 text-sm">{imageUploadError}</p>
         )}
 
-        {/* --- CORRECTED IMAGE PREVIEW SECTION --- */}
+        {/* --- IMAGE PREVIEW SECTION --- */}
         {formData.image && (
           <div className="relative">
             <img
               src={formData.image}
               alt="Uploaded preview"
-              /* crossOrigin is vital for fetching from Appwrite Cloud to localhost */
               crossOrigin="anonymous"
               className="w-full h-72 object-cover rounded-md mt-4 border border-slate-200 shadow-sm"
               onError={(e) => {
-                console.error(
-                  "Image preview failed to render. Check Appwrite Platforms/Permissions.",
-                );
-                toast.error("Preview failed to load. Check console.");
+                console.error("Image preview failed to render.");
+                toast.error("Preview failed to load.");
               }}
             />
           </div>
