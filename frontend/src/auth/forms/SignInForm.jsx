@@ -40,18 +40,19 @@ const SignInForm = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
+        // CRITICAL FIX: This allows the browser to save the cookie sent by the server
+        credentials: "include",
       });
 
       const data = await res.json();
 
-      // ✅ Proper error handling
       if (!res.ok) {
         dispatch(signInFailure(data.message));
         toast.error(data.message || "Sign in failed!");
         return;
       }
 
-      // ✅ Success
+      // Success logic
       dispatch(signInSuccess(data));
       toast.success("Sign in Successful!");
       navigate("/");
@@ -142,7 +143,6 @@ const SignInForm = () => {
             </div>
           </form>
 
-          {/* ✅ Redux error display */}
           {error && (
             <p className="text-red-500 text-center text-sm mt-2">{error}</p>
           )}

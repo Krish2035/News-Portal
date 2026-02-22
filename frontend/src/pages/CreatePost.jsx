@@ -34,13 +34,12 @@ const CreatePost = () => {
       setImageUploading(true);
       setImageUploadError(null);
 
-      // 1. Upload the file to Appwrite
+      // 1. Upload to Appwrite
       const uploadedFile = await uploadFile(file);
-
-      // 2. Get the Preview URL string
+      // 2. Get the file preview URL
       const postImageUrl = getFilePreview(uploadedFile.$id);
 
-      // 3. Update state with the valid URL string
+      // 3. Update state using functional pattern to prevent stale data
       setFormData((prev) => ({ ...prev, image: postImageUrl }));
 
       toast.success("Image uploaded successfully!");
@@ -56,13 +55,14 @@ const CreatePost = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // THE FIX FOR 401: Include credentials so cookies are sent to the backend
+      // THE FIX FOR 401:
+      // 'credentials: "include"' tells the browser to send the access_token cookie
       const res = await fetch("/api/post/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include", // This sends your auth token/cookies to port 3000
+        credentials: "include",
         body: JSON.stringify(formData),
       });
 
@@ -76,6 +76,7 @@ const CreatePost = () => {
 
       setPublishError(null);
       toast.success("Post published successfully!");
+      // Redirect to the newly created post
       navigate(`/post/${data.slug}`);
     } catch (error) {
       setPublishError("Something went wrong! Please try again.");
@@ -99,13 +100,13 @@ const CreatePost = () => {
             id="title"
             className="p-3 w-full sm:w-3/4 h-12 border border-slate-400 rounded-md focus:outline-none"
             onChange={(e) =>
-              setFormData({ ...formData, title: e.target.value })
+              setFormData((prev) => ({ ...prev, title: e.target.value }))
             }
           />
 
           <Select
             onValueChange={(value) =>
-              setFormData({ ...formData, category: value })
+              setFormData((prev) => ({ ...prev, category: value }))
             }
           >
             <SelectTrigger className="w-full sm:w-1/4 h-12 border border-slate-400">
@@ -144,15 +145,14 @@ const CreatePost = () => {
           <p className="text-red-600 text-sm">{imageUploadError}</p>
         )}
 
-        {/* --- IMAGE PREVIEW SECTION --- */}
+        {/* Display Image Preview if it exists */}
         {formData.image && (
           <div className="relative">
             <img
               src={formData.image}
               alt="Uploaded preview"
-              crossOrigin="anonymous"
               className="w-full h-72 object-cover rounded-md mt-4 border border-slate-200 shadow-sm"
-              onError={(e) => {
+              onError={() => {
                 console.error("Image preview failed to render.");
                 toast.error("Preview failed to load.");
               }}
@@ -165,7 +165,9 @@ const CreatePost = () => {
             theme="snow"
             placeholder="Write something here..."
             className="h-full"
-            onChange={(value) => setFormData({ ...formData, content: value })}
+            onChange={(value) =>
+              setFormData((prev) => ({ ...prev, content: value }))
+            }
           />
         </div>
 
@@ -175,6 +177,7 @@ const CreatePost = () => {
         >
           Publish Your Article
         </Button>
+
         {publishError && <p className="text-red-500 mt-5">{publishError}</p>}
       </form>
     </div>
