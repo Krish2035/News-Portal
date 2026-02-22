@@ -8,5 +8,6 @@ const router = express.Router();
 // If valid, it attaches the user to req.user and calls next() to run create.
 router.post("/create", verifyToken, create);
 router.get("/getposts", getPosts);
+router.delete("/deletepost/:postId/:userId", verifyToken, deletepost)
 
 export default router;
