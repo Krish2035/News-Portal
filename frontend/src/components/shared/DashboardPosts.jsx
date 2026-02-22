@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-// ADDED: TableHead and TableCell to the import list
 import {
   Table,
   TableBody,
@@ -10,14 +9,25 @@ import {
   TableHead,
   TableCell,
 } from "../ui/table";
-// ADDED: Link import from react-router-dom
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 const DashboardPosts = () => {
   const { currentUser } = useSelector((state) => state.user);
   const [userPosts, setUserPosts] = useState([]);
-
-  const [showMore, setShowMore] = useState(true)
+  const [showMore, setShowMore] = useState(true);
+  const [postIdToDelete, setPostIdToDelete] = useState(""); // Standardized state name
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -25,44 +35,40 @@ const DashboardPosts = () => {
         const res = await fetch(`/api/post/getposts?userId=${currentUser._id}`);
         const data = await res.json();
         if (res.ok) {
-          setUserPosts(data.posts)
-
-          if(data.posts.length < 2){
-            setShowMore(false)
+          setUserPosts(data.posts);
+          if (data.posts.length < 9) {
+            setShowMore(false);
           }
         }
       } catch (error) {
-        console.log(error)
+        console.log(error);
       }
-    }
-
+    };
     if (currentUser.isAdmin) {
       fetchPosts();
     }
+  }, [currentUser._id, currentUser.isAdmin]);
 
-  }, [currentUser._id])
-
-  const handleShowMore = async() => {
-    const startIndex = userPosts.length
-
+  const handleDeletePost = async () => {
     try {
       const res = await fetch(
-        `/api/post/getPosts?userId=${currentUser._id}&startIndex=${startIndex}`
-      )
-
-      const data = await res.json()
-
-      if(res.ok){
-        setUserPosts((prev) => [...prev, ...data.posts])
-
-        if(data.posts.length < 9){
-          setShowMore(false)
-        }
+        `/api/post/deletepost/${postIdToDelete}/${currentUser._id}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        },
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.message);
+      } else {
+        setUserPosts((prev) => prev.filter((post) => post._id !== postIdToDelete));
+        toast.success("Post deleted successfully");
       }
     } catch (error) {
-      console.log(error.message)
+      console.log(error.message);
     }
-  }
+  };
 
   return (
     <div className="flex flex-col items-center justify-center w-full p-3 overflow-x-auto">
@@ -72,7 +78,7 @@ const DashboardPosts = () => {
             <TableCaption>A list of your published articles.</TableCaption>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[200px]">Date Updated</TableHead>
+                <TableHead>Date Updated</TableHead>
                 <TableHead>Post Image</TableHead>
                 <TableHead>Post Title</TableHead>
                 <TableHead>Category</TableHead>
@@ -81,7 +87,6 @@ const DashboardPosts = () => {
               </TableRow>
             </TableHeader>
 
-            {/* FIXED: The map should be INSIDE TableBody */}
             <TableBody className="divide-y">
               {userPosts.map((post) => (
                 <TableRow key={post._id}>
@@ -107,31 +112,48 @@ const DashboardPosts = () => {
                   </TableCell>
                   <TableCell>{post.category}</TableCell>
                   <TableCell>
-                    <span className="font-medium text-red-500 hover:underline cursor-pointer">
-                      Delete
-                    </span>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <span
+                          onClick={() => setPostIdToDelete(post._id)} // CORRECT: post is defined here
+                          className="font-medium text-red-600 hover:underline cursor-pointer"
+                        >
+                          Delete
+                        </span>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Are you absolutely sure?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete this post.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-red-600"
+                            onClick={handleDeletePost} // Correctly uses the state variable
+                          >
+                            Continue
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </TableCell>
                   <TableCell>
                     <Link
                       className="font-medium text-green-600 hover:underline"
                       to={`/update-post/${post._id}`}
                     >
-                      <span>Edit</span>
+                      Edit
                     </Link>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-
-          {showMore && (
-            <button
-              onClick={handleShowMore}
-              className="w-full text-blue-700 self-center text-sm py-7"
-            >
-              Show more
-            </button>
-          )}
         </>
       ) : (
         <p>You have no posts yet!</p>

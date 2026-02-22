@@ -2,31 +2,37 @@ import Post from "../models/post.model.js";
 import { errorHandler } from "../utils/error.js";
 
 export const create = async (req, res, next) => {
-  // Check if user is admin (req.user comes from your verifyToken middleware)
+  // 1. Admin Check
   if (!req.user.isAdmin) {
     return next(errorHandler(403, "You are not authorized to create a post!"));
   }
 
+  // 2. Validation
   if (!req.body.title || !req.body.content) {
     return next(errorHandler(400, "Please provide all the required fields!"));
   }
 
-  const slug = req.body.title
-    .split(" ")
-    .join("-")
-    .toLowerCase()
-    .replace(/[^a-zA-Z0-9-]/g, "");
+  // 3. Slug Generation (Improved to prevent duplicates)
+  const slug =
+    req.body.title
+      .split(" ")
+      .join("-")
+      .toLowerCase()
+      .replace(/[^a-zA-Z0-9-]/g, "") +
+    "-" +
+    Math.random().toString(36).slice(-4);
 
   const newPost = new Post({
     ...req.body,
     slug,
-    userId: req.user.id,
+    userId: req.user.id || req.user._id, // Handles both naming conventions
   });
 
   try {
     const savedPost = await newPost.save();
     res.status(201).json(savedPost);
   } catch (error) {
+    // This catches Mongoose validation or duplicate errors
     next(error);
   }
 };
@@ -49,14 +55,12 @@ export const getPosts = async (req, res, next) => {
         ],
       }),
     })
-      .sort({ updatedAt: sortDirection }) // FIXED: changed updateAt to updatedAt
+      .sort({ updatedAt: sortDirection })
       .skip(startIndex)
       .limit(limit);
 
     const totalPosts = await Post.countDocuments();
-
     const now = new Date();
-
     const oneMonthAgo = new Date(
       now.getFullYear(),
       now.getMonth() - 1,
@@ -77,16 +81,21 @@ export const getPosts = async (req, res, next) => {
   }
 };
 
-export const deletepost = async(req, res, next) => {
-  if(!req.user.isAdmin || req.user.id !== req.params.userId){
-    return next(errorHandler(403, "You are not authorized to delete this post!"))
+export const deletepost = async (req, res, next) => {
+  // Standardizing the ID check
+  const userId = req.user.id || req.user._id;
+
+  if (!req.user.isAdmin || userId !== req.params.userId) {
+    return next(
+      errorHandler(403, "You are not authorized to delete this post!"),
+    );
   }
 
   try {
-    await Post.findByIdAndDelete(req.params.postId)
-
-    res.status(200).json("Post has been deleted!")
+    await Post.findByIdAndDelete(req.params.postId);
+    // ALWAYS return a JSON object, not just a string, to avoid frontend parsing errors
+    res.status(200).json({ message: "Post has been deleted!" });
   } catch (error) {
-    next(error)
+    next(error);
   }
-}
+};
