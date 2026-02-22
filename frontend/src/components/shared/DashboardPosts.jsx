@@ -27,12 +27,18 @@ const DashboardPosts = () => {
   const { currentUser } = useSelector((state) => state.user);
   const [userPosts, setUserPosts] = useState([]);
   const [showMore, setShowMore] = useState(true);
-  const [postIdToDelete, setPostIdToDelete] = useState(""); // Standardized state name
+  const [postIdToDelete, setPostIdToDelete] = useState("");
 
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await fetch(`/api/post/getposts?userId=${currentUser._id}`);
+        const res = await fetch(
+          `/api/post/getposts?userId=${currentUser._id}`,
+          {
+            method: "GET",
+            credentials: "include",
+          },
+        );
         const data = await res.json();
         if (res.ok) {
           setUserPosts(data.posts);
@@ -41,38 +47,45 @@ const DashboardPosts = () => {
           }
         }
       } catch (error) {
-        console.log(error);
+        console.log("Error fetching posts:", error.message);
       }
     };
-    if (currentUser.isAdmin) {
+    if (currentUser?.isAdmin) {
       fetchPosts();
     }
   }, [currentUser._id, currentUser.isAdmin]);
 
   const handleDeletePost = async () => {
+    if (!postIdToDelete || !currentUser?._id) return;
+
     try {
       const res = await fetch(
         `/api/post/deletepost/${postIdToDelete}/${currentUser._id}`,
         {
           method: "DELETE",
-          credentials: "include",
+          credentials: "include", // Essential for sending the access_token cookie
         },
       );
       const data = await res.json();
+
       if (!res.ok) {
-        toast.error(data.message);
+        // If this triggers 401, the verifyToken middleware rejected the cookie
+        toast.error(data.message || "Unauthorized action");
       } else {
-        setUserPosts((prev) => prev.filter((post) => post._id !== postIdToDelete));
+        setUserPosts((prev) =>
+          prev.filter((post) => post._id !== postIdToDelete),
+        );
         toast.success("Post deleted successfully");
       }
     } catch (error) {
-      console.log(error.message);
+      console.log("Delete error:", error.message);
+      toast.error("Failed to delete post");
     }
   };
 
   return (
     <div className="flex flex-col items-center justify-center w-full p-3 overflow-x-auto">
-      {currentUser.isAdmin && userPosts.length > 0 ? (
+      {currentUser?.isAdmin && userPosts.length > 0 ? (
         <>
           <Table>
             <TableCaption>A list of your published articles.</TableCaption>
@@ -86,7 +99,6 @@ const DashboardPosts = () => {
                 <TableHead>Edit</TableHead>
               </TableRow>
             </TableHeader>
-
             <TableBody className="divide-y">
               {userPosts.map((post) => (
                 <TableRow key={post._id}>
@@ -115,7 +127,7 @@ const DashboardPosts = () => {
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <span
-                          onClick={() => setPostIdToDelete(post._id)} // CORRECT: post is defined here
+                          onClick={() => setPostIdToDelete(post._id)}
                           className="font-medium text-red-600 hover:underline cursor-pointer"
                         >
                           Delete
@@ -127,14 +139,15 @@ const DashboardPosts = () => {
                             Are you absolutely sure?
                           </AlertDialogTitle>
                           <AlertDialogDescription>
-                            This will permanently delete this post.
+                            This action cannot be undone. This will permanently
+                            delete your post.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                           <AlertDialogAction
-                            className="bg-red-600"
-                            onClick={handleDeletePost} // Correctly uses the state variable
+                            className="bg-red-600 text-white hover:bg-red-700"
+                            onClick={handleDeletePost}
                           >
                             Continue
                           </AlertDialogAction>
@@ -156,7 +169,7 @@ const DashboardPosts = () => {
           </Table>
         </>
       ) : (
-        <p>You have no posts yet!</p>
+        <p className="mt-10">You have no posts yet!</p>
       )}
     </div>
   );

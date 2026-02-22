@@ -12,7 +12,7 @@ export const create = async (req, res, next) => {
     return next(errorHandler(400, "Please provide all the required fields!"));
   }
 
-  // 3. Slug Generation (Improved to prevent duplicates)
+  // 3. Slug Generation
   const slug =
     req.body.title
       .split(" ")
@@ -25,14 +25,13 @@ export const create = async (req, res, next) => {
   const newPost = new Post({
     ...req.body,
     slug,
-    userId: req.user.id || req.user._id, // Handles both naming conventions
+    userId: req.user.id || req.user._id,
   });
 
   try {
     const savedPost = await newPost.save();
     res.status(201).json(savedPost);
   } catch (error) {
-    // This catches Mongoose validation or duplicate errors
     next(error);
   }
 };
@@ -82,7 +81,6 @@ export const getPosts = async (req, res, next) => {
 };
 
 export const deletepost = async (req, res, next) => {
-  // Standardizing the ID check
   const userId = req.user.id || req.user._id;
 
   if (!req.user.isAdmin || userId !== req.params.userId) {
@@ -93,8 +91,36 @@ export const deletepost = async (req, res, next) => {
 
   try {
     await Post.findByIdAndDelete(req.params.postId);
-    // ALWAYS return a JSON object, not just a string, to avoid frontend parsing errors
     res.status(200).json({ message: "Post has been deleted!" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updatepost = async (req, res, next) => {
+  // Define userId before checking it
+  const userId = req.user.id || req.user._id;
+
+  if (!req.user.isAdmin || userId !== req.params.userId) {
+    return next(
+      errorHandler(403, "You are not authorized to update this post!"),
+    );
+  }
+
+  try {
+    const updatedPost = await Post.findByIdAndUpdate(
+      req.params.postId,
+      {
+        $set: {
+          title: req.body.title,
+          content: req.body.content,
+          category: req.body.category, // Added missing comma here
+          image: req.body.image,
+        },
+      },
+      { new: true },
+    );
+    res.status(200).json(updatedPost);
   } catch (error) {
     next(error);
   }

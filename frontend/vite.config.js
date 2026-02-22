@@ -9,17 +9,15 @@ export default defineConfig({
     proxy: {
       "/api": {
         target: "http://localhost:3000",
-        // changeOrigin: true ensures the host header matches the target
-        // This is crucial for authentication and cookies to work correctly
         changeOrigin: true,
         secure: false,
+        // No rewrite needed if your backend also uses the /api prefix
       },
     },
   },
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      // Allows you to use @/ notation for cleaner imports
       "@": path.resolve(__dirname, "./src"),
     },
   },

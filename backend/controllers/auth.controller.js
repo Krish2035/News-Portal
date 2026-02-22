@@ -27,7 +27,7 @@ export const signup = async (req, res, next) => {
     });
 
     await newUser.save();
-    res.json("Signup successful");
+    res.status(201).json("Signup successful");
   } catch (error) {
     next(error);
   }
@@ -61,13 +61,15 @@ export const signin = async (req, res, next) => {
 
     const { password: pass, ...rest } = validUser._doc;
 
-    // FIX: Added sameSite: 'lax' and secure: false for local development compatibility
+    // Cookie Configuration
     res
       .status(200)
       .cookie("access_token", token, {
-        httpOnly: true,
-        sameSite: "lax",
-        secure: false, // Ensure this is false on localhost (HTTP)
+        httpOnly: true, // Prevents XSS attacks
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 1 day
+        path: "/", // Available to all routes
+        sameSite: "lax", // Essential for modern browser cross-site rules
+        secure: process.env.NODE_ENV === "production", // Only use HTTPS in production
       })
       .json(rest);
   } catch (error) {
@@ -90,13 +92,14 @@ export const google = async (req, res, next) => {
 
       const { password: pass, ...rest } = user._doc;
 
-      // FIX: Added sameSite: 'lax' for Google sign-in cookies
       return res
         .status(200)
         .cookie("access_token", token, {
           httpOnly: true,
+          expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          path: "/",
           sameSite: "lax",
-          secure: false,
+          secure: process.env.NODE_ENV === "production",
         })
         .json(rest);
     }
@@ -126,13 +129,14 @@ export const google = async (req, res, next) => {
 
     const { password: pass, ...rest } = newUser._doc;
 
-    // FIX: Added sameSite: 'lax' for new Google user cookies
     return res
       .status(200)
       .cookie("access_token", token, {
         httpOnly: true,
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        path: "/",
         sameSite: "lax",
-        secure: false,
+        secure: process.env.NODE_ENV === "production",
       })
       .json(rest);
   } catch (error) {

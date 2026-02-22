@@ -12,6 +12,7 @@ import { Toaster } from "./components/ui/sonner"
 import PrivateRoute from "./components/shared/PrivateRoute.jsx"
 import CreatePost from "./pages/CreatePost"
 import AdminPrivateRoute from "./components/shared/AdminPrivateRoute"
+import EditPost from "./pages/EditPost"
 
 const App = () => {
   return (
@@ -30,6 +31,7 @@ const App = () => {
 
         <Route element={<AdminPrivateRoute />}>
           <Route path="/create-post" element={<CreatePost />} />
+          <Route path="/update-post/:postId" element={<EditPost />} />
         </Route>
 
         <Route path="/news" element={<NewsArticles />} />
