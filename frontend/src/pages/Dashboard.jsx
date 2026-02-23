@@ -2,6 +2,7 @@ import BottomNavBar from '@/components/shared/BottomNavBar'
 import DashboardPosts from '@/components/shared/DashboardPosts'
 import DashboardProfile from '@/components/shared/DashboardProfile'
 import DashboardSidebar from '@/components/shared/DashboardSidebar'
+import DashboardUsers from '@/components/shared/DashboardUsers'
 import React, { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 
@@ -32,6 +33,9 @@ const Dashboard = () => {
 
         { /* news articles */ }
         {tab === "posts" && <DashboardPosts />}
+
+        { /* users */ }
+        {tab === "users" && <DashboardUsers />}
       </div>
     </div>
   );
