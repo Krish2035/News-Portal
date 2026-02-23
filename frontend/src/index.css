@@ -124,3 +124,31 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* post content css */
+
+.post-content p {
+  margin-bottom: 0.5rem;
+}
+
+.post-content h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
+  margin: 1rem 0;
+}
+
+.post-content h2 {
+  font-size: 1.3rem;
+  font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
+  margin: 1.5rem 0;
+}
+
+.post-content a{
+  color: rgb(6, 6, 206);
+  text-decoration: none;
+}
+
+.post-content a:hover{
+  text-decoration: underline;
+}
