@@ -13,4 +13,6 @@ router.post("/create", verifyToken, createComment);
 // This ":postId" MUST match req.params.postId in the controller
 router.get("/getPostComments/:postId", getPostComments);
 
+router.put("/likecomment/:commentId", verifyToken, likeComment)
+
 export default router;
