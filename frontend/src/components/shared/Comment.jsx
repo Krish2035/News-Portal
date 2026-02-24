@@ -4,8 +4,19 @@ import { useSelector } from "react-redux";
 import { AiFillLike } from "react-icons/ai";
 import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
-const Comment = ({ comment, onLike, onEdit }) => {
+const Comment = ({ comment, onLike, onEdit, onDelete }) => {
   const [user, setUser] = useState({});
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(comment.content);
@@ -26,7 +37,7 @@ const Comment = ({ comment, onLike, onEdit }) => {
     getUser();
   }, [comment]);
 
-  const handleEditClick = () => {
+  const handleEdit = () => {
     setIsEditing(true);
     setEditedContent(comment.content);
   };
@@ -127,13 +138,39 @@ const Comment = ({ comment, onLike, onEdit }) => {
 
               {currentUser &&
                 (currentUser._id === comment.userId || currentUser.isAdmin) && (
-                  <button
-                    type="button"
-                    onClick={handleEditClick}
-                    className="text-gray-400 hover:text-blue-500"
-                  >
-                    Edit
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleEdit}
+                      className="text-gray-400 hover:text-blue-500"
+                    >
+                      Edit
+                    </button>
+
+                    <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <span className="text-gray-400 hover:text-red-600 cursor-pointer">Delete</span>
+                    </AlertDialogTrigger>
+          
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely Sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This Action cannot be undone. This will permanently delete your
+                          comment and remove your data from our servers.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+          
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        {/* Note: Changed the second one to AlertDialogAction for the "Continue" logic */}
+                        <AlertDialogAction className="bg-red-600" onClick={() => onDelete(comment._id)}>
+                          Continue
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                  </>
                 )}
             </div>
           </>

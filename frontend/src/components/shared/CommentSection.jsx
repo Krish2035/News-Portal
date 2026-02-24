@@ -9,10 +9,9 @@ import Comment from "./Comment";
 const CommentSection = ({ postId }) => {
   const { currentUser } = useSelector((state) => state.user);
   const [comment, setComment] = useState("");
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const [allComments, setAllComments] = useState([]);
 
-  // Fetch comments on component mount or when postId changes
   useEffect(() => {
     const getComments = async () => {
       try {
@@ -30,7 +29,6 @@ const CommentSection = ({ postId }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (comment.length > 200 || comment.length === 0) {
       toast.error("Comment must be between 1 and 200 characters.");
       return;
@@ -39,9 +37,7 @@ const CommentSection = ({ postId }) => {
     try {
       const res = await fetch("/api/comment/create", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           content: comment,
           postId,
@@ -50,61 +46,80 @@ const CommentSection = ({ postId }) => {
       });
 
       const data = await res.json();
-
       if (res.ok) {
         setComment("");
         toast.success("Comment added successfully!");
-        // Update local state so the new comment appears immediately
         setAllComments([data, ...allComments]);
       } else {
         toast.error(data.message || "Failed to post comment");
       }
     } catch (error) {
       console.log(error);
-      toast.error("Something went wrong! Please try again.");
+      toast.error("Something went wrong!");
     }
   };
 
-  const handleLike = async(commentId) => {
+  const handleLike = async (commentId) => {
     try {
-      if(!currentUser) {
-        navigate("/sign-in")
-        return
+      if (!currentUser) {
+        navigate("/sign-in");
+        return;
       }
-
       const res = await fetch(`/api/comment/likeComment/${commentId}`, {
         method: "PUT",
-      })
+      });
 
-      if(res.ok){
-        const data = await res.json()
-
+      if (res.ok) {
+        const data = await res.json();
         setAllComments(
           allComments.map((comment) =>
             comment._id === commentId
               ? {
-                ...comment,
-                likes: data.likes,
-                numberOfLikes: data.likes.length
-              }
-            : comment
-          )
-        )
+                  ...comment,
+                  likes: data.likes,
+                  numberOfLikes: data.likes.length,
+                }
+              : comment,
+          ),
+        );
       }
     } catch (error) {
-      console.log(error.message)
+      console.log(error.message);
     }
-  }
+  };
 
-  const handleEdit = async(comment, editedContent) => {
+  // --- ADDED THIS FUNCTION ---
+  const handleEdit = (comment, editedContent) => {
     setAllComments(
-      allComments.map((c) => c._id === comment._id ? {...c, content: editedContent} : c)
-    )
-  }
+      allComments.map((c) =>
+        c._id === comment._id ? { ...c, content: editedContent } : c,
+      ),
+    );
+  };
+
+  const handleDelete = async (commentId) => {
+    try {
+      if (!currentUser) {
+        navigate("/sign-in");
+        return;
+      }
+      const res = await fetch(`/api/comment/deleteComment/${commentId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setAllComments(
+          allComments.filter((comment) => comment._id !== commentId),
+        );
+        toast.success("Comment deleted");
+      }
+    } catch (error) {
+      console.log(error.message);
+    }
+  };
 
   return (
     <div className="max-w-3xl mx-auto w-full p-3">
-      {/* Sign-in status header */}
       {currentUser ? (
         <div className="flex items-center gap-1 my-5 text-gray-500 text-sm">
           <p>Signed in as:</p>
@@ -129,7 +144,6 @@ const CommentSection = ({ postId }) => {
         </div>
       )}
 
-      {/* Comment input form */}
       {currentUser && (
         <form
           className="border-2 border-gray-400 rounded-md p-4"
@@ -151,7 +165,6 @@ const CommentSection = ({ postId }) => {
         </form>
       )}
 
-      {/* Displaying the comments list */}
       <div className="mt-8">
         {allComments.length === 0 ? (
           <p className="text-sm text-gray-500">No comments yet!</p>
@@ -164,7 +177,13 @@ const CommentSection = ({ postId }) => {
               </div>
             </div>
             {allComments.map((comment) => (
-              <Comment key={comment._id} comment={comment} onLike={handleLike} onEdit={handleEdit} />
+              <Comment
+                key={comment._id}
+                comment={comment}
+                onLike={handleLike}
+                onEdit={handleEdit} /* ADDED PROP */
+                onDelete={handleDelete} /* ADDED PROP */
+              />
             ))}
           </>
         )}
