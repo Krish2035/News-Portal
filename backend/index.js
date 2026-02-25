@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+
+// Route Imports
 import authRoutes from "./routes/auth.route.js";
 import userRoutes from "./routes/user.route.js";
 import postRoutes from "./routes/post.route.js";
@@ -10,34 +12,38 @@ import commentRoutes from "./routes/comment.route.js";
 
 dotenv.config();
 
-// Database Connection
-const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URL);
+// --- DATABASE CONNECTION ---
+// Using a more modern approach to ensure the app only starts if DB connects
+mongoose
+  .connect(process.env.MONGO_URL)
+  .then(() => {
     console.log("Database is connected");
-  } catch (err) {
+  })
+  .catch((err) => {
     console.error("Database connection error:", err);
-  }
-};
-connectDB();
+  });
 
 const app = express();
 
-// --- MIDDLEWARE HIERARCHY (CRITICAL ORDER) ---
+// --- MIDDLEWARE HIERARCHY ---
 
-// 1. CORS: Must be at the very top to handle pre-flight requests
+// 1. CORS Configuration
+// Credentials must be true to allow the frontend to send/receive the access_token cookie
 app.use(
   cors({
-    origin: "http://localhost:5173", // Your frontend URL
-    credentials: true, // Essential for allowing cookies/sessions
+    origin: "http://localhost:5173", // Frontend Dev Port
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
 
-// 2. Body Parsers: To read JSON and URL-encoded data
+// 2. Body Parsing Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 3. Cookie Parser: Must be initialized BEFORE routes to populate req.cookies
+// 3. Cookie Parsing Middleware
+// Essential for verifyToken middleware to access req.cookies
 app.use(cookieParser());
 
 // --- ROUTES ---
@@ -55,10 +61,10 @@ app.listen(PORT, () => {
 });
 
 // --- GLOBAL ERROR HANDLER ---
-
+// This catches all next(error) calls from your controllers
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
-  const message = err.message || "Internal Server error";
+  const message = err.message || "Internal Server Error";
 
   res.status(statusCode).json({
     success: false,
