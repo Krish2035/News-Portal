@@ -10,24 +10,14 @@ export const appWriteConfig = {
 // 2. Initialize the Appwrite Client
 export const client = new Client();
 
-// 3. Safety Check: Only set the endpoint if the URL string exists
-// This prevents the "Uncaught AppwriteException: Endpoint must be a valid string" error
-if (appWriteConfig.url) {
-  client.setEndpoint(appWriteConfig.url);
+// 3. Configure Client with Safety Checks
+if (appWriteConfig.url && appWriteConfig.projectId) {
+  client.setEndpoint(appWriteConfig.url).setProject(appWriteConfig.projectId);
 } else {
   console.error(
-    "CRITICAL ERROR: Appwrite URL is undefined. Please check your .env file and restart your server.",
+    "CRITICAL ERROR: Appwrite credentials missing. Verify your .env file and restart the Vite dev server.",
   );
 }
 
-// 4. Set the Project ID
-if (appWriteConfig.projectId) {
-  client.setProject(appWriteConfig.projectId);
-} else {
-  console.error(
-    "CRITICAL ERROR: Appwrite Project ID is undefined. Please check your .env file.",
-  );
-}
-
-// 5. Initialize and export Storage
+// 4. Initialize and export Storage
 export const storage = new Storage(client);

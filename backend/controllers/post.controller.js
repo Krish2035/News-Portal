@@ -1,9 +1,12 @@
 import Post from "../models/post.model.js";
 import { errorHandler } from "../utils/error.js";
 
+/**
+ * CREATE POST
+ */
 export const create = async (req, res, next) => {
-  // 1. Admin Check
-  if (!req.user.isAdmin) {
+  // 1. Admin Check (Ensure req.user exists from verifyToken middleware)
+  if (!req.user || !req.user.isAdmin) {
     return next(errorHandler(403, "You are not authorized to create a post!"));
   }
 
@@ -36,13 +39,17 @@ export const create = async (req, res, next) => {
   }
 };
 
+/**
+ * GET POSTS (Used by Home.jsx)
+ */
 export const getPosts = async (req, res, next) => {
   try {
     const startIndex = parseInt(req.query.startIndex) || 0;
     const limit = parseInt(req.query.limit) || 9;
-    const sortDirection = req.query.order === "asc" ? 1 : -1;
+    const sortDirection = req.query.sort === "asc" ? 1 : -1;
 
-    const posts = await Post.find({
+    // Build the query object
+    const query = {
       ...(req.query.userId && { userId: req.query.userId }),
       ...(req.query.category && { category: req.query.category }),
       ...(req.query.slug && { slug: req.query.slug }),
@@ -53,12 +60,15 @@ export const getPosts = async (req, res, next) => {
           { content: { $regex: req.query.searchTerm, $options: "i" } },
         ],
       }),
-    })
+    };
+
+    const posts = await Post.find(query)
       .sort({ updatedAt: sortDirection })
       .skip(startIndex)
       .limit(limit);
 
     const totalPosts = await Post.countDocuments();
+
     const now = new Date();
     const oneMonthAgo = new Date(
       now.getFullYear(),
@@ -76,14 +86,18 @@ export const getPosts = async (req, res, next) => {
       lastMonthPosts,
     });
   } catch (error) {
+    // If the 500 error happens, this catch block sends it to index.js
     next(error);
   }
 };
 
+/**
+ * DELETE POST
+ */
 export const deletepost = async (req, res, next) => {
-  const userId = req.user.id || req.user._id;
+  const currentUserId = req.user?.id || req.user?._id;
 
-  if (!req.user.isAdmin || userId !== req.params.userId) {
+  if (!req.user.isAdmin || currentUserId !== req.params.userId) {
     return next(
       errorHandler(403, "You are not authorized to delete this post!"),
     );
@@ -97,11 +111,13 @@ export const deletepost = async (req, res, next) => {
   }
 };
 
+/**
+ * UPDATE POST
+ */
 export const updatepost = async (req, res, next) => {
-  // Define userId before checking it
-  const userId = req.user.id || req.user._id;
+  const currentUserId = req.user?.id || req.user?._id;
 
-  if (!req.user.isAdmin || userId !== req.params.userId) {
+  if (!req.user.isAdmin || currentUserId !== req.params.userId) {
     return next(
       errorHandler(403, "You are not authorized to update this post!"),
     );
@@ -114,8 +130,8 @@ export const updatepost = async (req, res, next) => {
         $set: {
           title: req.body.title,
           content: req.body.content,
-          category: req.body.category, // Added missing comma here
-          image: req.body.image,
+          category: req.body.category,
+          image: req.body.image, // Ensure Appwrite URL is saved here
         },
       },
       { new: true },

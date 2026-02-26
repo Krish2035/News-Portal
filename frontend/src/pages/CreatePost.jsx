@@ -11,7 +11,7 @@ import {
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import { Button } from "@/components/ui/button";
-import { getFilePreview, uploadFile } from "@/lib/appwrite/uploadImage";
+import { getFileView, uploadFile } from "@/lib/appwrite/uploadImage";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -21,8 +21,29 @@ const CreatePost = () => {
   const [file, setFile] = useState(null);
   const [imageUploadError, setImageUploadError] = useState(null);
   const [imageUploading, setImageUploading] = useState(false);
-  const [formData, setFormData] = useState({});
+  const [formData, setFormData] = useState({
+    title: "",
+    category: "worldnews",
+    content: "",
+    image: "",
+  });
   const [publishError, setPublishError] = useState(null);
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (!selectedFile) return;
+
+    if (selectedFile.size > 2097152) {
+      setImageUploadError("Image is too large. Choose a file under 2MB.");
+      toast.error("File exceeds 2MB limit");
+      setFile(null);
+      e.target.value = null;
+      return;
+    }
+
+    setFile(selectedFile);
+    setImageUploadError(null);
+  };
 
   const handleUploadImage = async () => {
     try {
@@ -31,22 +52,30 @@ const CreatePost = () => {
         toast.error("Please select an image!");
         return;
       }
+
       setImageUploading(true);
       setImageUploadError(null);
 
-      // 1. Upload to Appwrite
       const uploadedFile = await uploadFile(file);
-      // 2. Get the file preview URL
-      const postImageUrl = getFilePreview(uploadedFile.$id);
 
-      // 3. Update state using functional pattern to prevent stale data
+      if (!uploadedFile || !uploadedFile.$id) {
+        throw new Error("Upload succeeded but file ID is missing.");
+      }
+
+      const previewRes = getFileView(uploadedFile.$id);
+
+      if (!previewRes) {
+        throw new Error("Could not generate image URL.");
+      }
+
+      const postImageUrl = previewRes.href || previewRes.toString();
       setFormData((prev) => ({ ...prev, image: postImageUrl }));
 
       toast.success("Image uploaded successfully!");
       setImageUploading(false);
     } catch (error) {
       console.error("Upload Error:", error);
-      setImageUploadError("Image upload failed");
+      setImageUploadError("Upload failed. Check Appwrite bucket permissions.");
       toast.error("Image upload failed");
       setImageUploading(false);
     }
@@ -54,14 +83,18 @@ const CreatePost = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.image) {
+      setPublishError("Please upload an image first.");
+      toast.error("Please upload an image first.");
+      return;
+    }
+
     try {
-      // THE FIX FOR 401:
-      // 'credentials: "include"' tells the browser to send the access_token cookie
+      setPublishError(null);
       const res = await fetch("/api/post/create", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(formData),
       });
@@ -69,19 +102,17 @@ const CreatePost = () => {
       const data = await res.json();
 
       if (!res.ok) {
-        setPublishError(data.message);
+        setPublishError(data.message || "Failed to publish post");
         toast.error(data.message || "Failed to publish post");
         return;
       }
 
-      setPublishError(null);
       toast.success("Post published successfully!");
-      // Redirect to the newly created post
       navigate(`/post/${data.slug}`);
     } catch (error) {
       setPublishError("Something went wrong! Please try again.");
       toast.error("Something went wrong");
-      console.error(error);
+      console.error("Submit Error:", error);
     }
   };
 
@@ -105,14 +136,14 @@ const CreatePost = () => {
           />
 
           <Select
+            defaultValue="worldnews"
             onValueChange={(value) =>
               setFormData((prev) => ({ ...prev, category: value }))
             }
           >
             <SelectTrigger className="w-full sm:w-1/4 h-12 border border-slate-400">
-              <SelectValue placeholder="Select a Category" />
+              <SelectValue placeholder="Category" />
             </SelectTrigger>
-
             <SelectContent>
               <SelectGroup>
                 <SelectLabel>Category</SelectLabel>
@@ -128,12 +159,12 @@ const CreatePost = () => {
           <input
             type="file"
             accept="image/*"
-            onChange={(e) => setFile(e.target.files[0])}
+            onChange={handleFileChange}
+            className="cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-50 file:text-slate-700 hover:file:bg-slate-100"
           />
-
           <Button
             type="button"
-            className="bg-slate-700"
+            className="bg-slate-700 text-white"
             onClick={handleUploadImage}
             disabled={imageUploading}
           >
@@ -142,19 +173,23 @@ const CreatePost = () => {
         </div>
 
         {imageUploadError && (
-          <p className="text-red-600 text-sm">{imageUploadError}</p>
+          <p className="text-red-600 text-sm font-medium">{imageUploadError}</p>
         )}
 
-        {/* Display Image Preview if it exists */}
         {formData.image && (
-          <div className="relative">
+          <div className="relative group animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <p className="text-sm text-green-600 mb-1 font-medium italic">
+              ✓ Image verified. Ready to publish.
+            </p>
             <img
               src={formData.image}
               alt="Uploaded preview"
-              className="w-full h-72 object-cover rounded-md mt-4 border border-slate-200 shadow-sm"
-              onError={() => {
-                console.error("Image preview failed to render.");
-                toast.error("Preview failed to load.");
+              className="w-full h-72 object-cover rounded-md border border-slate-200 shadow-sm"
+              onError={(e) => {
+                if (!e.target.src.includes("placehold.co")) {
+                  e.target.src =
+                    "https://placehold.co/600x400?text=Preview+Error";
+                }
               }}
             />
           </div>
@@ -165,6 +200,7 @@ const CreatePost = () => {
             theme="snow"
             placeholder="Write something here..."
             className="h-full"
+            required
             onChange={(value) =>
               setFormData((prev) => ({ ...prev, content: value }))
             }
@@ -173,12 +209,17 @@ const CreatePost = () => {
 
         <Button
           type="submit"
-          className="h-12 bg-green-600 font-semibold max-sm:mt-12 text-md"
+          className="h-12 bg-green-600 hover:bg-green-700 text-white font-semibold max-sm:mt-12 transition-all disabled:opacity-50"
+          disabled={imageUploading}
         >
           Publish Your Article
         </Button>
 
-        {publishError && <p className="text-red-500 mt-5">{publishError}</p>}
+        {publishError && (
+          <p className="text-red-500 mt-5 font-medium text-center">
+            {publishError}
+          </p>
+        )}
       </form>
     </div>
   );

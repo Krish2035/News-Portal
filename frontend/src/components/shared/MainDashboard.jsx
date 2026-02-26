@@ -95,9 +95,8 @@ const MainDashboard = () => {
       </div>
 
       {/* --- LOWER SECTION: RECENT TABLES --- */}
-      {/* Reduced the gap and set items-start to avoid unnecessary stretching */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full items-start">
-        {/* Recent Users - Height decreased to fit sidebar bottom */}
+        {/* Recent Users */}
         <div className="flex flex-col shadow-sm rounded-lg border bg-card text-card-foreground overflow-hidden h-[345px]">
           <div className="flex justify-between items-center px-4 py-2 border-b">
             <h1 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -141,7 +140,7 @@ const MainDashboard = () => {
           </Table>
         </div>
 
-        {/* Recent Comments - Height decreased */}
+        {/* Recent Comments */}
         <div className="flex flex-col shadow-sm rounded-lg border bg-card text-card-foreground overflow-hidden h-[345px]">
           <div className="flex justify-between items-center px-4 py-2 border-b">
             <h1 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -173,8 +172,8 @@ const MainDashboard = () => {
                     className="hover:bg-muted/50 transition-colors"
                   >
                     <TableCell className="px-4 py-1.5">
-                      <div className="max-h-10 overflow-y-auto pr-1 text-[11px] text-slate-600 dark:text-gray-300 scrollbar-none">
-                        <p className="break-words leading-tight">
+                      <div className="max-h-10 overflow-hidden text-[11px] text-slate-600 dark:text-gray-300">
+                        <p className="line-clamp-2 leading-tight break-words">
                           {comment.content}
                         </p>
                       </div>
@@ -188,8 +187,8 @@ const MainDashboard = () => {
           </Table>
         </div>
 
-        {/* Recent Posts - Height decreased */}
-        <div className="flex flex-col shadow-sm rounded-lg border bg-card text-card-foreground overflow-hidden h-[345px]">
+        {/* Recent Posts - UPDATED TO REMOVE SCROLLBAR & FIX TITLE */}
+        <div className="flex flex-col shadow-sm rounded-lg border bg-card text-card-foreground overflow-hidden h-[345px] w-full">
           <div className="flex justify-between items-center px-4 py-2 border-b">
             <h1 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Recent Posts
@@ -203,39 +202,46 @@ const MainDashboard = () => {
               <Link to="/dashboard?tab=posts">See all</Link>
             </Button>
           </div>
-          <Table>
+          <Table className="table-fixed w-full">
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead className="px-3 py-1.5 h-auto">Post image</TableHead>
-                <TableHead className="px-3 py-1.5 h-auto">Post Title</TableHead>
-                <TableHead className="px-3 py-1.5 h-auto">Category</TableHead>
+                <TableHead className="w-[65px] px-3 py-1.5 h-auto text-[10px]">
+                  Image
+                </TableHead>
+                <TableHead className="px-3 py-1.5 h-auto text-[10px]">
+                  Title
+                </TableHead>
+                <TableHead className="w-[85px] px-3 py-1.5 h-auto text-[10px]">
+                  Category
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {posts && posts.map((post) => (
-                <TableRow
-                  key={post._id}
-                  className="hover:bg-muted/50 transition-colors"
-                >
-                  <TableCell className="px-3 py-1.5">
-                    <img
-                      src={post.image}
-                      className="w-7 h-7 rounded-full object-cover border"
-                      alt={post.title}
-                    />
-                  </TableCell>
-                  <TableCell className="px-3 py-1.5 text-[11px] font-medium">
-                    <span className="line-clamp-1 leading-tight">
-                      {post.title}
-                    </span>
-                  </TableCell>
-                  <TableCell className="px-3 py-1.5">
-                    <span className="text-[9px] bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded-full text-slate-600 dark:text-slate-300 truncate max-w-[50px] inline-block">
-                      {post.category}
-                    </span>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {posts &&
+                posts.map((post) => (
+                  <TableRow
+                    key={post._id}
+                    className="hover:bg-muted/50 transition-colors"
+                  >
+                    <TableCell className="px-3 py-1.5">
+                      <img
+                        src={post.image}
+                        className="w-8 h-8 rounded-md object-cover border"
+                        alt={post.title}
+                      />
+                    </TableCell>
+                    <TableCell className="px-3 py-1.5">
+                      <p className="text-[11px] font-semibold leading-tight text-slate-700 line-clamp-2">
+                        {post.title}
+                      </p>
+                    </TableCell>
+                    <TableCell className="px-3 py-1.5">
+                      <span className="text-[9px] bg-slate-100 px-2 py-0.5 rounded-full text-slate-500 font-medium truncate block">
+                        {post.category}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
         </div>

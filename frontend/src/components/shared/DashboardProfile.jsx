@@ -10,7 +10,7 @@ import {
   updateStart,
   updateSuccess,
 } from "@/redux/user/userSlice";
-import { getFilePreview, uploadFile } from "@/lib/appwrite/uploadImage";
+import { getFileView, uploadFile } from "@/lib/appwrite/uploadImage";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -51,25 +51,39 @@ const DashboardProfile = () => {
 
     try {
       const uploadedFile = await uploadFile(imageFile);
-      const profilePictureUrl = getFilePreview(uploadedFile.$id);
-      return profilePictureUrl;
+      // We use getFileView to avoid the 'Image Transformation Blocked' 403 error on free plans
+      const previewRes = getFileView(uploadedFile.$id);
+
+      // Ensure we get a clean string URL
+      const profilePictureUrl = previewRes.href || previewRes.toString();
+
+      /**
+       * CACHE BUSTER:
+       * Appending a timestamp ensures the browser treats this as a brand new image
+       * and forces the Header component to update immediately.
+       */
+      return `${profilePictureUrl}&t=${new Date().getTime()}`;
     } catch (error) {
       toast.error("Image upload failed. Please try again.");
       console.error("Image upload failed: ", error);
-      return currentUser.profilePicture; // Fallback to current pic on failure
+      return currentUser.profilePicture;
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (Object.keys(formData).length === 0 && !imageFile) {
+      toast.info("No changes made.");
+      return;
+    }
+
     try {
       dispatch(updateStart());
 
-      // Wait for image uploading
       const profilePicture = await uploadImage();
 
-      const updateProfile = {
+      const updateProfileData = {
         ...formData,
         profilePicture,
       };
@@ -79,66 +93,58 @@ const DashboardProfile = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(updateProfile),
+        body: JSON.stringify(updateProfileData),
       });
 
       const data = await res.json();
 
-      console.log(data)
-
-      if (data.success === false) {
+      if (res.ok === false || data.success === false) {
         toast.error(data.message || "Update user failed.");
         dispatch(updateFailure(data.message));
       } else {
-        console.log("I am running");
+        // Redux state update triggers the Header re-render
         dispatch(updateSuccess(data));
         toast.success("User updated successfully.");
+        setImageFile(null);
+        setImageFileUrl(null);
       }
     } catch (error) {
       dispatch(updateFailure(error.message));
       toast.error("An error occurred during update.");
       console.error(error);
     }
-  }
+  };
 
-  const handleDeleteUser = async() => {
+  const handleDeleteUser = async () => {
     try {
-      dispatch(deleteUserStart())
-
+      dispatch(deleteUserStart());
       const res = await fetch(`/api/user/delete/${currentUser._id}`, {
         method: "DELETE",
-      })
+      });
+      const data = await res.json();
 
-      const data = await res.json()
-
-      if(!res.ok){
-        dispatch(deleteUserFailure(data.message))
-      }else{
-        dispatch(deleteUserSuccess())
+      if (!res.ok) {
+        dispatch(deleteUserFailure(data.message));
+      } else {
+        dispatch(deleteUserSuccess());
       }
     } catch (error) {
-      console.log(error)
-      dispatch(deleteUserFailure(error.message))
+      dispatch(deleteUserFailure(error.message));
     }
-  }
+  };
 
-  const handleSignout = async() => {
+  const handleSignout = async () => {
     try {
       const res = await fetch("/api/user/signout", {
         method: "POST",
-      })
-
-      const data = await res.json()
-
-      if(!res.ok){
-        console.log(data.message)
-      }else{
-        dispatch(signOutSuccess())
+      });
+      if (res.ok) {
+        dispatch(signOutSuccess());
       }
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
-  }
+  };
 
   return (
     <div className="max-w-lg mx-auto p-3 w-full">
@@ -154,13 +160,23 @@ const DashboardProfile = () => {
           ref={profilePicRef}
           onChange={handleImageChange}
         />
-        <div className="w-32 h-32 self-center cursor-pointer overflow-hidden">
+        <div className="relative w-32 h-32 self-center cursor-pointer group">
           <img
             src={imageFileUrl || currentUser.profilePicture}
             alt="profile"
-            className="rounded-full w-full h-full object-cover border-8 border-gray-300"
+            className={`rounded-full w-full h-full object-cover border-8 border-gray-300 transition-opacity ${
+              loading ? "opacity-50" : "opacity-100"
+            }`}
             onClick={() => profilePicRef.current.click()}
           />
+          <div
+            onClick={() => profilePicRef.current.click()}
+            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-full"
+          >
+            <span className="text-white text-xs font-bold text-center px-2">
+              Change Photo
+            </span>
+          </div>
         </div>
 
         <input
@@ -168,7 +184,7 @@ const DashboardProfile = () => {
           id="username"
           placeholder="username"
           defaultValue={currentUser.username}
-          className="h-12 border border-slate-400 focus-visible:ring-offset-0 pl-4"
+          className="h-12 border border-slate-400 rounded-md focus:outline-slate-600 pl-4"
           onChange={handleChange}
         />
 
@@ -177,7 +193,7 @@ const DashboardProfile = () => {
           id="email"
           placeholder="email"
           defaultValue={currentUser.email}
-          className="h-12 border border-slate-400 focus-visible:ring-offset-0 pl-4"
+          className="h-12 border border-slate-400 rounded-md focus:outline-slate-600 pl-4"
           onChange={handleChange}
         />
 
@@ -185,36 +201,45 @@ const DashboardProfile = () => {
           type="password"
           id="password"
           placeholder="password"
-          className="h-12 border border-slate-400 focus-visible:ring-offset-0 pl-4"
+          className="h-12 border border-slate-400 rounded-md focus:outline-slate-600 pl-4"
           onChange={handleChange}
         />
 
-        <Button type="submit" className="h-12 bg-green-600 hover:bg-green-600" disabled={loading}>
-          {loading ? "Loading..." : "Update Profile"}
+        <Button
+          type="submit"
+          className="h-12 bg-green-600 hover:bg-green-700 text-white transition-colors"
+          disabled={loading}
+        >
+          {loading ? "Updating..." : "Update Profile"}
         </Button>
       </form>
 
-      <div className="text-red-500 flex justify-between mt-5 cursor-pointer">
+      <div className="flex justify-between mt-5">
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="ghost" className="text-red-500 cursor-pointer">
+            <Button
+              variant="ghost"
+              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+            >
               Delete Account
             </Button>
           </AlertDialogTrigger>
 
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Are you absolutely Sure?</AlertDialogTitle>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This Action cannot be undone. This will permanently delete your
+                This action cannot be undone. This will permanently delete your
                 account and remove your data from our servers.
               </AlertDialogDescription>
             </AlertDialogHeader>
 
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              {/* Note: Changed the second one to AlertDialogAction for the "Continue" logic */}
-              <AlertDialogAction className="bg-red-600" onClick={handleDeleteUser}>
+              <AlertDialogAction
+                className="bg-red-600 hover:bg-red-700"
+                onClick={handleDeleteUser}
+              >
                 Continue
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -222,14 +247,19 @@ const DashboardProfile = () => {
         </AlertDialog>
 
         <Button
-        variant="ghost"
-        className="cursor-pointer"
-        onClick={handleSignout}>
+          variant="ghost"
+          className="text-slate-600 hover:text-slate-800"
+          onClick={handleSignout}
+        >
           Sign Out
         </Button>
       </div>
 
-      <p className="text-red-600">{error}</p>
+      {error && (
+        <p className="text-red-600 mt-5 text-center text-sm font-medium">
+          {error}
+        </p>
+      )}
     </div>
   );
 };

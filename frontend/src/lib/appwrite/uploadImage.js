@@ -1,12 +1,12 @@
-// src/lib/appwrite/uploadImage.js
-import { ID, ImageGravity } from "appwrite";
+import { ID } from "appwrite";
 import { appWriteConfig, storage } from "./config";
 
 /**
- * Uploads a file to the Appwrite bucket
- * @param {File} file - The file object from the input field
+ * Uploads a file to the Appwrite bucket.
  */
 export async function uploadFile(file) {
+  if (!file) return null;
+
   try {
     const uploadedFile = await storage.createFile(
       appWriteConfig.storageId,
@@ -15,31 +15,43 @@ export async function uploadFile(file) {
     );
     return uploadedFile;
   } catch (error) {
-    console.error("Appwrite Service :: uploadFile :: error", error);
+    console.error("Appwrite Upload Error:", error.message);
     throw error;
   }
 }
 
 /**
- * Generates a preview URL for a specific file
- * @param {string} fileId - The ID of the uploaded file
+ * Generates a direct URL to the file.
+ * We use getFileView because getFilePreview with parameters
+ * is restricted on the Appwrite Free Plan.
+ */
+export function getFileView(fileId) {
+  try {
+    if (!fileId) return null;
+
+    // getFileView provides the original file without transformations
+    const fileUrl = storage.getFileView(appWriteConfig.storageId, fileId);
+
+    return fileUrl?.href || fileUrl?.toString() || null;
+  } catch (error) {
+    console.error("Appwrite View Error:", error);
+    return null;
+  }
+}
+
+/**
+ * Fallback Preview function without transformation parameters.
  */
 export function getFilePreview(fileId) {
   try {
-    // This method is synchronous and returns a URL object
-    const fileUrl = storage.getFilePreview(
-      appWriteConfig.storageId,
-      fileId,
-      2000, // width
-      2000, // height
-      ImageGravity.Top, // gravity
-      100, // quality
-    );
+    if (!fileId) return null;
 
-    // Return the string version of the URL so it can be used in <img src="..." />
-    return fileUrl.href;
+    // We MUST NOT pass width, height, or quality here on the Free Plan
+    const fileUrl = storage.getFilePreview(appWriteConfig.storageId, fileId);
+
+    return fileUrl?.href || fileUrl?.toString() || null;
   } catch (error) {
-    console.error("Appwrite Service :: getFilePreview :: error", error);
+    console.error("Appwrite Preview Error:", error);
     return null;
   }
 }

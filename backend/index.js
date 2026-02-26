@@ -13,7 +13,12 @@ import commentRoutes from "./routes/comment.route.js";
 dotenv.config();
 
 // --- DATABASE CONNECTION ---
-// Using a more modern approach to ensure the app only starts if DB connects
+// Ensured the MONGO_URL is being read correctly
+if (!process.env.MONGO_URL) {
+  console.error("CRITICAL ERROR: MONGO_URL is not defined in .env file");
+  process.exit(1);
+}
+
 mongoose
   .connect(process.env.MONGO_URL)
   .then(() => {
@@ -28,23 +33,22 @@ const app = express();
 // --- MIDDLEWARE HIERARCHY ---
 
 // 1. CORS Configuration
-// Credentials must be true to allow the frontend to send/receive the access_token cookie
+// Important: origin must match your Vite dev server address exactly
 app.use(
   cors({
-    origin: "http://localhost:5173", // Frontend Dev Port
+    origin: "http://localhost:5173",
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
 
-// 2. Body Parsing Middleware
+// 2. Cookie Parsing Middleware (Must be BEFORE routes)
+app.use(cookieParser());
+
+// 3. Body Parsing Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// 3. Cookie Parsing Middleware
-// Essential for verifyToken middleware to access req.cookies
-app.use(cookieParser());
 
 // --- ROUTES ---
 
@@ -61,10 +65,15 @@ app.listen(PORT, () => {
 });
 
 // --- GLOBAL ERROR HANDLER ---
-// This catches all next(error) calls from your controllers
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   const message = err.message || "Internal Server Error";
+
+  // Log the error to the backend terminal so you can see the stack trace
+  console.error(`[Error] ${statusCode}: ${message}`);
+  if (statusCode === 500) {
+    console.error(err.stack); // This reveals the exact line where the code broke
+  }
 
   res.status(statusCode).json({
     success: false,

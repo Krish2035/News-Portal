@@ -3,25 +3,35 @@ import { errorHandler } from "./error.js";
 
 export const verifyToken = (req, res, next) => {
   // 1. Extract the token from cookies
-  const token = req.cookies.access_token;
+  // Ensure 'cookie-parser' is initialized in index.js before routes
+  const token = req.cookies?.access_token;
 
-  // 2. Debugging: Check if the cookie actually arrived at the server
+  // 2. Check if the token exists
   if (!token) {
-    console.log("Authorization Failed: No access_token found in cookies.");
-    return next(errorHandler(401, "Unauthorized: Please log in again."));
+    console.error(
+      "Auth Error: No access_token found. Ensure credentials: true is set in fetch/axios.",
+    );
+    return next(errorHandler(401, "Unauthorized: No token provided."));
   }
 
   // 3. Verify the token using your JWT_SECRET
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) {
-      console.log("JWT Verification Error:", err.message);
-      return next(errorHandler(401, "Unauthorized: Invalid or expired token."));
+      console.error("JWT Error:", err.message);
+
+      // Handle specific expired token case
+      if (err.name === "TokenExpiredError") {
+        return next(errorHandler(401, "Token expired. Please log in again."));
+      }
+
+      return next(errorHandler(401, "Unauthorized: Invalid token."));
     }
 
-    // 4. Attach the decoded user data (id, isAdmin) to the request object
+    // 4. Attach decoded user data (id, isAdmin) to the request object
+    // This allows controllers to check if (req.user.isAdmin)
     req.user = user;
 
-    // 5. Pass control to the next function (the controller)
+    // 5. Success - Move to the next middleware or controller
     next();
   });
 };

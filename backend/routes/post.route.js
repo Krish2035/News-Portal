@@ -9,16 +9,29 @@ import {
 
 const router = express.Router();
 
-// Create a new post - Protected by verifyToken
+/**
+ * @route   POST /api/post/create
+ * @desc    Create a new post (Admin only)
+ */
 router.post("/create", verifyToken, create);
 
-// Get posts - Public route
+/**
+ * @route   GET /api/post/getposts
+ * @desc    Get all posts with filters (Public)
+ * Matches Home.jsx: fetch("/api/post/getposts?limit=6")
+ */
 router.get("/getposts", getPosts);
 
-// Delete a post - Protected by verifyToken
-// Make sure the parameters (:postId and :userId) match your controller's req.params
+/**
+ * @route   DELETE /api/post/deletepost/:postId/:userId
+ * @desc    Delete a specific post (Admin/Owner only)
+ */
 router.delete("/deletepost/:postId/:userId", verifyToken, deletepost);
 
+/**
+ * @route   PUT /api/post/updatepost/:postId/:userId
+ * @desc    Update a specific post (Admin/Owner only)
+ */
 router.put("/updatepost/:postId/:userId", verifyToken, updatepost);
 
 export default router;
