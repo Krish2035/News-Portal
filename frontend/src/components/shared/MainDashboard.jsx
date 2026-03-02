@@ -97,7 +97,7 @@ const MainDashboard = () => {
       {/* --- LOWER SECTION: RECENT TABLES --- */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full items-start">
         {/* Recent Users */}
-        <div className="flex flex-col shadow-sm rounded-lg border bg-card text-card-foreground overflow-hidden h-[345px]">
+        <div className="flex flex-col shadow-sm rounded-lg border bg-card text-card-foreground overflow-hidden h-[320px]">
           <div className="flex justify-between items-center px-4 py-2 border-b">
             <h1 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Recent Users
@@ -141,7 +141,7 @@ const MainDashboard = () => {
         </div>
 
         {/* Recent Comments */}
-        <div className="flex flex-col shadow-sm rounded-lg border bg-card text-card-foreground overflow-hidden h-[345px]">
+        <div className="flex flex-col shadow-sm rounded-lg border bg-card text-card-foreground overflow-hidden h-[320px]">
           <div className="flex justify-between items-center px-4 py-2 border-b">
             <h1 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Recent Comments
@@ -188,7 +188,7 @@ const MainDashboard = () => {
         </div>
 
         {/* Recent Posts - UPDATED TO REMOVE SCROLLBAR & FIX TITLE */}
-        <div className="flex flex-col shadow-sm rounded-lg border bg-card text-card-foreground overflow-hidden h-[345px] w-full">
+        <div className="flex flex-col shadow-sm rounded-lg border bg-card text-card-foreground overflow-hidden h-[320px] w-full">
           <div className="flex justify-between items-center px-4 py-2 border-b">
             <h1 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Recent Posts
