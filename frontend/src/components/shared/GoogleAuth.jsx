@@ -1,0 +1,57 @@
+import React from "react";
+import { Button } from "../ui/button";
+import { getAuth, GoogleAuthProvider, signInWithPopup } from "@firebase/auth";
+import { app } from "@/firebase";
+import { useDispatch } from "react-redux";
+import { signInSuccess } from "@/redux/user/userSlice";
+import { useNavigate } from "react-router-dom";
+
+const GoogleAuth = () => {
+  const auth = getAuth(app);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const handleGoogleClick = async () => {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+
+    try {
+      const firebaseResponse = await signInWithPopup(auth, provider);
+
+      const res = await fetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // CRITICAL FIX: Allows the browser to save the cookie returned by your backend
+        credentials: "include",
+        body: JSON.stringify({
+          name: firebaseResponse.user.displayName,
+          email: firebaseResponse.user.email,
+          profilePhotoUrl: firebaseResponse.user.photoURL,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        dispatch(signInSuccess(data));
+        navigate("/");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  return (
+    <div>
+      <Button
+        type="button"
+        className="bg-green-500 w-full py-3 rounded-2xl text-white pt-6 pb-6"
+        onClick={handleGoogleClick}
+      >
+        Continue With Google
+      </Button>
+    </div>
+  );
+};
+
+export default GoogleAuth;
