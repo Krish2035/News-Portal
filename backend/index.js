@@ -3,9 +3,8 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import path from "url";
 import { fileURLToPath } from "url";
-import path_module from "path"; // Renamed to avoid confusion with the 'url' import
+import path_module from "path";
 
 // Route Imports
 import authRoutes from "./routes/auth.route.js";
@@ -28,9 +27,22 @@ mongoose
 
 // --- MIDDLEWARE ---
 
-// Optimized CORS configuration
+// ✅ FIXED: Support for both Local and Production
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://news-portal-nu-three.vercel.app", // Your Vercel Link
+  "https://news-portal-krish2035s-projects.vercel.app" // Your other Vercel Link
+];
+
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) === -1) {
+        return callback(new Error("The CORS policy for this site does not allow access from the specified Origin."), false);
+      }
+      return callback(null, true);
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"]
@@ -39,13 +51,8 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json());
 
-// --- STATIC FILES FIX (CORP & CORS) ---
-// We apply specific headers to the static route to ensure browsers don't block the assets
-app.use("/uploads", (req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  next();
-}, express.static(path_module.join(__dirname, "uploads")));
+// --- STATIC FILES ---
+app.use("/uploads", express.static(path_module.join(__dirname, "uploads")));
 
 // --- ROUTES ---
 app.use("/api/auth", authRoutes);
@@ -60,9 +67,10 @@ app.use((err, req, res, next) => {
   res.status(statusCode).json({ success: false, statusCode, message });
 });
 
+// ✅ PORT Fix for Render
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
 
 export default app;
