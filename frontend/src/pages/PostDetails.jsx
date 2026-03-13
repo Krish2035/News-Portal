@@ -121,7 +121,6 @@ const PostDetails = () => {
       <img
         src={getSafeImageUrl(post.image)}
         alt={post.title}
-        crossOrigin="anonymous"
         className="mt-10 max-h-[600px] w-full object-cover rounded-xl shadow-xl border border-slate-200"
         onError={(e) => {
           e.target.src = "https://via.placeholder.com/1200x600?text=News+Nova+Image+Unavailable";
