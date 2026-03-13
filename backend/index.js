@@ -16,8 +16,10 @@ dotenv.config();
 
 // 🚨 CRITICAL: Check for required variables before doing anything else
 if (!process.env.JWT_SECRET) {
-    console.error("FATAL ERROR: JWT_SECRET is not defined in environment variables.");
-    process.exit(1); // Stop the server immediately
+  console.error(
+    "FATAL ERROR: JWT_SECRET is not defined in environment variables.",
+  );
+  process.exit(1);
 }
 
 const __filename = fileURLToPath(import.meta.url);
@@ -32,25 +34,33 @@ mongoose
   .catch((err) => console.error("Database connection error:", err));
 
 // --- MIDDLEWARE ---
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://news-portal-nu-three.vercel.app",
-  "https://news-portal-krish2035s-projects.vercel.app",
-  "https://news-portal-4hpep5o0p-krish2035s-projects.vercel.app" // Added your latest preview link
-];
 
-app.use(cors({
+app.use(
+  cors({
     origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) === -1) {
-        return callback(new Error("CORS policy blocked this origin."), false);
+
+      // ✅ REGEX FIX: This allows localhost AND any subdomain of vercel.app
+      const isVercel = /\.vercel\.app$/.test(origin);
+      const isLocal = origin === "http://localhost:5173";
+
+      if (isVercel || isLocal) {
+        return callback(null, true);
+      } else {
+        return callback(
+          new Error(
+            "The CORS policy for this site does not allow access from the specified Origin.",
+          ),
+          false,
+        );
       }
-      return callback(null, true);
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"]
-}));
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 
 app.use(cookieParser());
 app.use(express.json());
@@ -71,6 +81,7 @@ app.use((err, req, res, next) => {
   res.status(statusCode).json({ success: false, statusCode, message });
 });
 
+// ✅ PORT Fix for Render
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
