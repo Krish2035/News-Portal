@@ -11,16 +11,15 @@ const PostCard = ({ post }) => {
       try {
         const urlObj = new URL(url);
         
-        // Change 'preview' to 'view' for full resolution if needed
+        // Use 'view' instead of 'preview' for full resolution and reliability
         urlObj.pathname = urlObj.pathname.replace('/preview', '/view');
         
-        // Get Project ID from existing URL or Environment Variable
+        // Ensure Project ID is present as it's required by Appwrite's security headers
         const projectId = urlObj.searchParams.get('project') || import.meta.env.VITE_APPWRITE_PROJECT_ID;
         
-        // Return cleaned URL with essential Project ID
+        // Clean up parameters to avoid Opaque Response Blocking (ORB)
         return `${urlObj.origin}${urlObj.pathname}?project=${projectId}`;
       } catch (e) {
-        // Fallback if URL parsing fails
         return url.replace('/preview', '/view');
       }
     }
@@ -44,6 +43,7 @@ const PostCard = ({ post }) => {
           alt={post.title}
           className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
           loading="lazy"
+          // ❌ CRITICAL: Do NOT add crossOrigin="anonymous" here
           onError={(e) => {
             e.target.src = "https://placehold.co/600x400/e2e8f0/1e293b?text=Image+Not+Found";
           }}

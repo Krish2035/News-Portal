@@ -1,6 +1,6 @@
-import PostCard from "@/components/shared/PostCard";
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import PostCard from "@/components/shared/PostCard";
 
 const Home = () => {
   const [posts, setPosts] = useState([]);
@@ -8,7 +8,9 @@ const Home = () => {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await fetch("/api/post/getposts?limit=9"); // Increased limit for better grid
+        // Vite uses import.meta.env for VITE_API_URL
+        const apiUrl = import.meta.env.VITE_API_URL || "";
+        const res = await fetch(`${apiUrl}/api/post/getposts?limit=9`); 
         const data = await res.json();
         if (res.ok) setPosts(data.posts);
       } catch (error) {
@@ -20,7 +22,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Hero Section with Modern Gradient */}
+      {/* Hero Section */}
       <div className="bg-gradient-to-r from-blue-900 to-slate-900 text-white py-20 px-6">
         <div className="max-w-6xl mx-auto flex flex-col gap-4">
           <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight">
@@ -48,7 +50,6 @@ const Home = () => {
               </Link>
             </div>
             
-            {/* The News Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {posts.map((post) => (
                 <div key={post._id} className="transform hover:-translate-y-1 transition-transform duration-300">
