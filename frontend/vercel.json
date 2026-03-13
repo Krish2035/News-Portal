@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://your-backend-name.onrender.com/api/$1"
+      "destination": "https://news-portal-unyn.onrender.com/api/$1"
     },
     {
       "source": "/(.*)",
