@@ -14,6 +14,12 @@ import commentRoutes from "./routes/comment.route.js";
 
 dotenv.config();
 
+// 🚨 CRITICAL: Check for required variables before doing anything else
+if (!process.env.JWT_SECRET) {
+    console.error("FATAL ERROR: JWT_SECRET is not defined in environment variables.");
+    process.exit(1); // Stop the server immediately
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path_module.dirname(__filename);
 
@@ -26,20 +32,18 @@ mongoose
   .catch((err) => console.error("Database connection error:", err));
 
 // --- MIDDLEWARE ---
-
-// ✅ FIXED: Support for both Local and Production
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://news-portal-nu-three.vercel.app", // Your Vercel Link
-  "https://news-portal-krish2035s-projects.vercel.app" // Your other Vercel Link
+  "https://news-portal-nu-three.vercel.app",
+  "https://news-portal-krish2035s-projects.vercel.app",
+  "https://news-portal-4hpep5o0p-krish2035s-projects.vercel.app" // Added your latest preview link
 ];
 
 app.use(cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
       if (allowedOrigins.indexOf(origin) === -1) {
-        return callback(new Error("The CORS policy for this site does not allow access from the specified Origin."), false);
+        return callback(new Error("CORS policy blocked this origin."), false);
       }
       return callback(null, true);
     },
@@ -67,7 +71,6 @@ app.use((err, req, res, next) => {
   res.status(statusCode).json({ success: false, statusCode, message });
 });
 
-// ✅ PORT Fix for Render
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
