@@ -18,15 +18,30 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path_module.dirname(__filename);
 const app = express();
 
-// --- DATABASE CONNECTION ---
-// Using a global variable or checking readyState is best for Vercel's serverless environment
+/**
+ * --- DATABASE CONNECTION (SERVERLESS OPTIMIZED) ---
+ * We use a global variable to cache the connection.
+ * This prevents Vercel from opening too many connections and crashing.
+ */
+let isConnected = false;
+
 const connectDB = async () => {
+  mongoose.set("strictQuery", true);
+
+  if (isConnected) {
+    return;
+  }
+
   try {
-    if (mongoose.connection.readyState >= 1) return;
-    await mongoose.connect(process.env.MONGO_URL);
+    const db = await mongoose.connect(process.env.MONGO_URL, {
+      dbName: "news-nova", // Ensure this matches your Atlas DB name
+      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of hanging
+    });
+    isConnected = db.connections[0].readyState;
     console.log("Database connected successfully");
   } catch (err) {
     console.error("Database connection error:", err);
+    // In serverless, we don't want to throw a generic error that hangs the function
   }
 };
 
@@ -34,10 +49,9 @@ const connectDB = async () => {
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps)
       if (!origin) return callback(null, true);
 
-      // Regex to allow any Vercel subdomain and your local environment
+      // Allows local dev and any Vercel deployment
       const isVercel = /\.vercel\.app$/.test(origin);
       const isLocal = origin === "http://localhost:5173";
 
@@ -53,21 +67,14 @@ app.use(
   })
 );
 
-// Handle pre-flight OPTIONS requests explicitly for Vercel compatibility
 app.options("*", cors());
-
 app.use(cookieParser());
 app.use(express.json());
 
 // --- DATABASE SYNC MIDDLEWARE ---
-// Ensures DB is connected for every incoming serverless request
 app.use(async (req, res, next) => {
-  try {
-    await connectDB();
-    next();
-  } catch (error) {
-    next(error);
-  }
+  await connectDB();
+  next();
 });
 
 // --- STATIC FILES ---
@@ -85,7 +92,6 @@ app.use("/api/post", postRoutes);
 app.use("/api/comment", commentRoutes);
 
 // --- 404 CATCH-ALL ---
-// If no route matches, return a clean JSON error instead of Vercel's HTML 404
 app.use((req, res, next) => {
   res.status(404).json({
     success: false,
