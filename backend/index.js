@@ -20,17 +20,12 @@ const app = express();
 
 /**
  * --- DATABASE CONNECTION (STRICT SERVERLESS HANDLING) ---
- * We cache the connection promise. This is the most reliable way 
- * to handle MongoDB in Vercel to avoid "Function Invocation Failed".
  */
 let cachedDB = null;
 
 const connectDB = async () => {
-  if (cachedDB) {
-    return cachedDB;
-  }
+  if (cachedDB) return cachedDB;
 
-  // If no connection exists, create a new one
   try {
     mongoose.set("strictQuery", true);
     const db = await mongoose.connect(process.env.MONGO_URL, {
@@ -42,8 +37,6 @@ const connectDB = async () => {
     return cachedDB;
   } catch (err) {
     console.error("Database connection error:", err);
-    // Important: In serverless, we don't want to swallow the error 
-    // if it's the first attempt, or the function will hang.
     throw err; 
   }
 };
@@ -68,12 +61,16 @@ app.use(
   })
 );
 
-app.options("*", cors());
+/**
+ * FIXED: Replaced "*" with "(.*)" to prevent PathError [TypeError]
+ * This was the specific cause of your 500 Internal Server Error.
+ */
+app.options("(.*)", cors());
+
 app.use(cookieParser());
 app.use(express.json());
 
 // --- DATABASE MIDDLEWARE ---
-// We use 'await' here to force the function to wait for the DB before hitting routes.
 app.use(async (req, res, next) => {
   try {
     await connectDB();
@@ -97,8 +94,11 @@ app.use("/api/user", userRoutes);
 app.use("/api/post", postRoutes);
 app.use("/api/comment", commentRoutes);
 
-// --- 404 CATCH-ALL ---
-app.use((req, res, next) => {
+/**
+ * FIXED: 404 CATCH-ALL
+ * Also using regex to avoid parsing errors in newer Express versions.
+ */
+app.use("(.*)", (req, res) => {
   res.status(404).json({
     success: false,
     message: `Path ${req.originalUrl} not found on this server.`,
@@ -120,5 +120,4 @@ if (process.env.NODE_ENV !== "production") {
   });
 }
 
-// REQUIRED: The export default allows Vercel to treat this as a single function.
 export default app;
