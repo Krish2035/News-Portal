@@ -89,5 +89,9 @@ if (process.env.NODE_ENV !== "production") {
   });
 }
 
+app.get("/", (req, res) => {
+  res.json({ message: "News Nova API is running smoothly!" });
+});
+
 // CRITICAL for Vercel: Export the app
 export default app;
