@@ -19,29 +19,32 @@ const __dirname = path_module.dirname(__filename);
 const app = express();
 
 /**
- * --- DATABASE CONNECTION (SERVERLESS OPTIMIZED) ---
- * We use a global variable to cache the connection.
- * This prevents Vercel from opening too many connections and crashing.
+ * --- DATABASE CONNECTION (STRICT SERVERLESS HANDLING) ---
+ * We cache the connection promise. This is the most reliable way 
+ * to handle MongoDB in Vercel to avoid "Function Invocation Failed".
  */
-let isConnected = false;
+let cachedDB = null;
 
 const connectDB = async () => {
-  mongoose.set("strictQuery", true);
-
-  if (isConnected) {
-    return;
+  if (cachedDB) {
+    return cachedDB;
   }
 
+  // If no connection exists, create a new one
   try {
+    mongoose.set("strictQuery", true);
     const db = await mongoose.connect(process.env.MONGO_URL, {
-      dbName: "news-nova", // Ensure this matches your Atlas DB name
-      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of hanging
+      dbName: "news-nova",
+      serverSelectionTimeoutMS: 5000, 
     });
-    isConnected = db.connections[0].readyState;
+    cachedDB = db;
     console.log("Database connected successfully");
+    return cachedDB;
   } catch (err) {
     console.error("Database connection error:", err);
-    // In serverless, we don't want to throw a generic error that hangs the function
+    // Important: In serverless, we don't want to swallow the error 
+    // if it's the first attempt, or the function will hang.
+    throw err; 
   }
 };
 
@@ -50,8 +53,6 @@ app.use(
   cors({
     origin: function (origin, callback) {
       if (!origin) return callback(null, true);
-
-      // Allows local dev and any Vercel deployment
       const isVercel = /\.vercel\.app$/.test(origin);
       const isLocal = origin === "http://localhost:5173";
 
@@ -71,10 +72,15 @@ app.options("*", cors());
 app.use(cookieParser());
 app.use(express.json());
 
-// --- DATABASE SYNC MIDDLEWARE ---
+// --- DATABASE MIDDLEWARE ---
+// We use 'await' here to force the function to wait for the DB before hitting routes.
 app.use(async (req, res, next) => {
-  await connectDB();
-  next();
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Database Connection Error" });
+  }
 });
 
 // --- STATIC FILES ---
@@ -114,5 +120,5 @@ if (process.env.NODE_ENV !== "production") {
   });
 }
 
-// CRITICAL for Vercel: Export the app instance
+// REQUIRED: The export default allows Vercel to treat this as a single function.
 export default app;
