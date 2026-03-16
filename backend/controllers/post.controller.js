@@ -1,29 +1,22 @@
 import Post from "../models/post.model.js";
 import { errorHandler } from "../utils/error.js";
 
-/**
- * CREATE POST
- */
 export const create = async (req, res, next) => {
-  // 1. Admin Check (Ensure req.user exists from verifyToken middleware)
   if (!req.user || !req.user.isAdmin) {
     return next(errorHandler(403, "You are not authorized to create a post!"));
   }
-
-  // 2. Validation
   if (!req.body.title || !req.body.content) {
     return next(errorHandler(400, "Please provide all the required fields!"));
   }
 
-  // 3. Slug Generation
-  const slug =
-    req.body.title
-      .split(" ")
-      .join("-")
-      .toLowerCase()
-      .replace(/[^a-zA-Z0-9-]/g, "") +
-    "-" +
-    Math.random().toString(36).slice(-4);
+  // Improved slug generation to prevent empty strings or double dashes
+  const slug = req.body.title
+    .split(" ")
+    .join("-")
+    .toLowerCase()
+    .replace(/[^a-zA-Z0-9-]/g, "")
+    .replace(/-+/g, "-") + 
+    "-" + Math.random().toString(36).slice(-4);
 
   const newPost = new Post({
     ...req.body,
@@ -39,16 +32,12 @@ export const create = async (req, res, next) => {
   }
 };
 
-/**
- * GET POSTS (Used by Home.jsx)
- */
 export const getPosts = async (req, res, next) => {
   try {
     const startIndex = parseInt(req.query.startIndex) || 0;
     const limit = parseInt(req.query.limit) || 9;
     const sortDirection = req.query.sort === "asc" ? 1 : -1;
 
-    // Build the query object
     const query = {
       ...(req.query.userId && { userId: req.query.userId }),
       ...(req.query.category && { category: req.query.category }),
@@ -68,13 +57,8 @@ export const getPosts = async (req, res, next) => {
       .limit(limit);
 
     const totalPosts = await Post.countDocuments();
-
     const now = new Date();
-    const oneMonthAgo = new Date(
-      now.getFullYear(),
-      now.getMonth() - 1,
-      now.getDate(),
-    );
+    const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
 
     const lastMonthPosts = await Post.countDocuments({
       createdAt: { $gte: oneMonthAgo },
@@ -86,23 +70,15 @@ export const getPosts = async (req, res, next) => {
       lastMonthPosts,
     });
   } catch (error) {
-    // If the 500 error happens, this catch block sends it to index.js
     next(error);
   }
 };
 
-/**
- * DELETE POST
- */
 export const deletepost = async (req, res, next) => {
   const currentUserId = req.user?.id || req.user?._id;
-
   if (!req.user.isAdmin || currentUserId !== req.params.userId) {
-    return next(
-      errorHandler(403, "You are not authorized to delete this post!"),
-    );
+    return next(errorHandler(403, "You are not authorized to delete this post!"));
   }
-
   try {
     await Post.findByIdAndDelete(req.params.postId);
     res.status(200).json({ message: "Post has been deleted!" });
@@ -111,18 +87,11 @@ export const deletepost = async (req, res, next) => {
   }
 };
 
-/**
- * UPDATE POST
- */
 export const updatepost = async (req, res, next) => {
   const currentUserId = req.user?.id || req.user?._id;
-
   if (!req.user.isAdmin || currentUserId !== req.params.userId) {
-    return next(
-      errorHandler(403, "You are not authorized to update this post!"),
-    );
+    return next(errorHandler(403, "You are not authorized to update this post!"));
   }
-
   try {
     const updatedPost = await Post.findByIdAndUpdate(
       req.params.postId,
@@ -131,10 +100,10 @@ export const updatepost = async (req, res, next) => {
           title: req.body.title,
           content: req.body.content,
           category: req.body.category,
-          image: req.body.image, // Ensure Appwrite URL is saved here
+          image: req.body.image,
         },
       },
-      { new: true },
+      { new: true }
     );
     res.status(200).json(updatedPost);
   } catch (error) {
