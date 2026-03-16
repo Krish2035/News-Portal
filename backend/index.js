@@ -44,7 +44,7 @@ app.use(
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
 
@@ -52,7 +52,6 @@ app.use(cookieParser());
 app.use(express.json());
 
 // --- DATABASE CONNECTION CHECK MIDDLEWARE ---
-// This ensures DB is connected before any route is handled
 app.use(async (req, res, next) => {
   await connectDB();
   next();
