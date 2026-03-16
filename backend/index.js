@@ -19,7 +19,7 @@ const __dirname = path_module.dirname(__filename);
 const app = express();
 
 /**
- * --- DATABASE CONNECTION (STRICT SERVERLESS HANDLING) ---
+ * --- DATABASE CONNECTION (STRICT SERVERLESS CACHING) ---
  */
 let cachedDB = null;
 
@@ -62,21 +62,21 @@ app.use(
 );
 
 /**
- * FIXED: Replaced "*" with "(.*)" to prevent PathError [TypeError]
- * This was the specific cause of your 500 Internal Server Error.
+ * FIXED: The "*path" syntax is required by newer path-to-regexp versions.
+ * This resolves the "Missing parameter name at index 3" error in your logs.
  */
 app.options("*path", cors());
 
 app.use(cookieParser());
 app.use(express.json());
 
-// --- DATABASE MIDDLEWARE ---
+// --- DATABASE SYNC MIDDLEWARE ---
 app.use(async (req, res, next) => {
   try {
     await connectDB();
     next();
   } catch (error) {
-    res.status(500).json({ success: false, message: "Database Connection Error" });
+    res.status(500).json({ success: false, message: "Database connection failed" });
   }
 });
 
@@ -96,7 +96,7 @@ app.use("/api/comment", commentRoutes);
 
 /**
  * FIXED: 404 CATCH-ALL
- * Also using regex to avoid parsing errors in newer Express versions.
+ * Uses the same "*path" named wildcard to satisfy the router parser.
  */
 app.use("*path", (req, res) => {
   res.status(404).json({
