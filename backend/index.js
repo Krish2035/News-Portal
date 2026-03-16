@@ -18,7 +18,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path_module.dirname(__filename);
 const app = express();
 
-// --- DATABASE ---
+// --- DATABASE CONNECTION ---
+// Using a global variable or checking readyState is best for Vercel's serverless environment
 const connectDB = async () => {
   try {
     if (mongoose.connection.readyState >= 1) return;
@@ -29,13 +30,17 @@ const connectDB = async () => {
   }
 };
 
-// --- MIDDLEWARE ---
+// --- CORS CONFIGURATION ---
 app.use(
   cors({
     origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps)
       if (!origin) return callback(null, true);
+
+      // Regex to allow any Vercel subdomain and your local environment
       const isVercel = /\.vercel\.app$/.test(origin);
       const isLocal = origin === "http://localhost:5173";
+
       if (isVercel || isLocal) {
         return callback(null, true);
       } else {
@@ -44,17 +49,25 @@ app.use(
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
   })
 );
+
+// Handle pre-flight OPTIONS requests explicitly for Vercel compatibility
+app.options("*", cors());
 
 app.use(cookieParser());
 app.use(express.json());
 
-// --- DATABASE CONNECTION CHECK MIDDLEWARE ---
+// --- DATABASE SYNC MIDDLEWARE ---
+// Ensures DB is connected for every incoming serverless request
 app.use(async (req, res, next) => {
-  await connectDB();
-  next();
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
 // --- STATIC FILES ---
@@ -71,7 +84,16 @@ app.use("/api/user", userRoutes);
 app.use("/api/post", postRoutes);
 app.use("/api/comment", commentRoutes);
 
-// --- ERROR HANDLING ---
+// --- 404 CATCH-ALL ---
+// If no route matches, return a clean JSON error instead of Vercel's HTML 404
+app.use((req, res, next) => {
+  res.status(404).json({
+    success: false,
+    message: `Path ${req.originalUrl} not found on this server.`,
+  });
+});
+
+// --- GLOBAL ERROR HANDLING ---
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   const message = err.message || "Internal Server Error";
@@ -86,4 +108,5 @@ if (process.env.NODE_ENV !== "production") {
   });
 }
 
+// CRITICAL for Vercel: Export the app instance
 export default app;
