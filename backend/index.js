@@ -14,58 +14,57 @@ import commentRoutes from "./routes/comment.route.js";
 
 dotenv.config();
 
-// 🚨 CRITICAL: Check for required variables before doing anything else
-if (!process.env.JWT_SECRET) {
-  console.error(
-    "FATAL ERROR: JWT_SECRET is not defined in environment variables.",
-  );
-  process.exit(1);
-}
-
+// --- CONFIGURATION ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path_module.dirname(__filename);
-
 const app = express();
 
+// 🚨 CRITICAL CHECK
+if (!process.env.JWT_SECRET) {
+  console.error("FATAL ERROR: JWT_SECRET is not defined.");
+  // We don't exit(1) on Vercel as it kills the serverless instance
+}
+
 // --- DATABASE ---
-mongoose
-  .connect(process.env.MONGO_URL)
-  .then(() => console.log("Database connected successfully"))
-  .catch((err) => console.error("Database connection error:", err));
+// In Vercel, we don't want to re-connect on every function call
+const connectDB = async () => {
+  try {
+    if (mongoose.connection.readyState >= 1) return;
+    await mongoose.connect(process.env.MONGO_URL);
+    console.log("Database connected successfully");
+  } catch (err) {
+    console.error("Database connection error:", err);
+  }
+};
+connectDB();
 
 // --- MIDDLEWARE ---
-
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl)
       if (!origin) return callback(null, true);
-
-      // ✅ REGEX FIX: This allows localhost AND any subdomain of vercel.app
+      
+      // Matches localhost or any vercel.app subdomain
       const isVercel = /\.vercel\.app$/.test(origin);
       const isLocal = origin === "http://localhost:5173";
 
       if (isVercel || isLocal) {
         return callback(null, true);
       } else {
-        return callback(
-          new Error(
-            "The CORS policy for this site does not allow access from the specified Origin.",
-          ),
-          false,
-        );
+        return callback(new Error("CORS policy blocked this origin."), false);
       }
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
-  }),
+  })
 );
 
 app.use(cookieParser());
 app.use(express.json());
 
 // --- STATIC FILES ---
+// Note: Files saved here at runtime will NOT persist on Vercel
 app.use("/uploads", express.static(path_module.join(__dirname, "uploads")));
 
 // --- ROUTES ---
@@ -81,10 +80,14 @@ app.use((err, req, res, next) => {
   res.status(statusCode).json({ success: false, statusCode, message });
 });
 
-// ✅ PORT Fix for Render
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// --- EXECUTION ENVIRONMENT ---
+// Only listen on a port if we are NOT on Vercel (Production)
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Local Server running on port ${PORT}`);
+  });
+}
 
+// CRITICAL for Vercel: Export the app
 export default app;
