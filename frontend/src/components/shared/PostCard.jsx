@@ -8,7 +8,7 @@ const PostCard = ({ post }) => {
 
     // 2. Handle Local Backend Uploads (for /uploads folder)
     if (url.startsWith("/uploads")) {
-      const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-nu-three.vercel.app";
+      const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
       return `${backendBase}${url}`;
     }
 
