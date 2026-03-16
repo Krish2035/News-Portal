@@ -14,19 +14,11 @@ import commentRoutes from "./routes/comment.route.js";
 
 dotenv.config();
 
-// --- CONFIGURATION ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path_module.dirname(__filename);
 const app = express();
 
-// 🚨 CRITICAL CHECK
-if (!process.env.JWT_SECRET) {
-  console.error("FATAL ERROR: JWT_SECRET is not defined.");
-  // We don't exit(1) on Vercel as it kills the serverless instance
-}
-
 // --- DATABASE ---
-// In Vercel, we don't want to re-connect on every function call
 const connectDB = async () => {
   try {
     if (mongoose.connection.readyState >= 1) return;
@@ -36,18 +28,14 @@ const connectDB = async () => {
     console.error("Database connection error:", err);
   }
 };
-connectDB();
 
 // --- MIDDLEWARE ---
 app.use(
   cors({
     origin: function (origin, callback) {
       if (!origin) return callback(null, true);
-      
-      // Matches localhost or any vercel.app subdomain
       const isVercel = /\.vercel\.app$/.test(origin);
       const isLocal = origin === "http://localhost:5173";
-
       if (isVercel || isLocal) {
         return callback(null, true);
       } else {
@@ -63,9 +51,20 @@ app.use(
 app.use(cookieParser());
 app.use(express.json());
 
+// --- DATABASE CONNECTION CHECK MIDDLEWARE ---
+// This ensures DB is connected before any route is handled
+app.use(async (req, res, next) => {
+  await connectDB();
+  next();
+});
+
 // --- STATIC FILES ---
-// Note: Files saved here at runtime will NOT persist on Vercel
 app.use("/uploads", express.static(path_module.join(__dirname, "uploads")));
+
+// --- ROOT ROUTE ---
+app.get("/", (req, res) => {
+  res.json({ message: "News Nova API is running smoothly!" });
+});
 
 // --- ROUTES ---
 app.use("/api/auth", authRoutes);
@@ -81,7 +80,6 @@ app.use((err, req, res, next) => {
 });
 
 // --- EXECUTION ENVIRONMENT ---
-// Only listen on a port if we are NOT on Vercel (Production)
 if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
@@ -89,9 +87,4 @@ if (process.env.NODE_ENV !== "production") {
   });
 }
 
-app.get("/", (req, res) => {
-  res.json({ message: "News Nova API is running smoothly!" });
-});
-
-// CRITICAL for Vercel: Export the app
 export default app;
