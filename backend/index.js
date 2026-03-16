@@ -28,15 +28,17 @@ const connectDB = async () => {
 
   try {
     mongoose.set("strictQuery", true);
+    // Increased timeout and added connection feedback
     const db = await mongoose.connect(process.env.MONGO_URL, {
       dbName: "news-nova",
-      serverSelectionTimeoutMS: 5000, 
+      serverSelectionTimeoutMS: 8000, // Slightly more time for initial handshake
     });
     cachedDB = db;
-    console.log("Database connected successfully");
+    console.log("✅ Database connected successfully");
     return cachedDB;
   } catch (err) {
-    console.error("Database connection error:", err);
+    console.error("❌ Database connection error:", err);
+    // Do not throw here if you want the server to keep trying or handle it in startServer
     throw err; 
   }
 };
@@ -61,16 +63,17 @@ app.use(
   })
 );
 
-/**
- * FIXED: The "*path" syntax is required by newer path-to-regexp versions.
- * This resolves the "Missing parameter name at index 3" error in your logs.
- */
+// Fixed named wildcard for compatibility
 app.options("*path", cors());
 
 app.use(cookieParser());
 app.use(express.json());
 
-// --- DATABASE SYNC MIDDLEWARE ---
+/**
+ * --- DATABASE SYNC MIDDLEWARE ---
+ * Retained for Vercel/Production serverless environments where
+ * the persistent connection might be dropped between calls.
+ */
 app.use(async (req, res, next) => {
   try {
     await connectDB();
@@ -94,10 +97,6 @@ app.use("/api/user", userRoutes);
 app.use("/api/post", postRoutes);
 app.use("/api/comment", commentRoutes);
 
-/**
- * FIXED: 404 CATCH-ALL
- * Uses the same "*path" named wildcard to satisfy the router parser.
- */
 app.use("*path", (req, res) => {
   res.status(404).json({
     success: false,
@@ -112,12 +111,29 @@ app.use((err, req, res, next) => {
   res.status(statusCode).json({ success: false, statusCode, message });
 });
 
-// --- EXECUTION ENVIRONMENT ---
-if (process.env.NODE_ENV !== "production") {
+/**
+ * --- EXECUTION ENVIRONMENT & IMMEDIATE INITIALIZATION ---
+ * This block ensures that locally, your DB connects as soon as the server starts.
+ */
+const start = async () => {
   const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`Local Server running on port ${PORT}`);
-  });
-}
+  
+  if (process.env.NODE_ENV !== "production") {
+    try {
+      // Connect to DB immediately in local dev environment
+      await connectDB();
+      app.listen(PORT, () => {
+        console.log(`🚀 Local Server running on port ${PORT}`);
+      });
+    } catch (err) {
+      console.error("Critical: Server failed to start due to DB error.");
+    }
+  } else {
+    // In Vercel production, we export the app for serverless handling
+    console.log("Production environment detected.");
+  }
+};
+
+start();
 
 export default app;
