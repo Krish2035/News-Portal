@@ -2,38 +2,51 @@ import jwt from "jsonwebtoken";
 import { errorHandler } from "./error.js";
 
 export const verifyToken = (req, res, next) => {
-  // 1. Extract the token from cookies
-  // The ?. ensures we don't crash if cookies are missing entirely
-  const token = req.cookies?.access_token;
-
-  // 2. Check if the token exists
-  if (!token) {
-    console.error(
-      "Auth Error: No access_token found. Ensure 'credentials: true' is set in your frontend fetch/axios config."
-    );
-    return next(errorHandler(401, "Unauthorized: No token provided."));
+  /**
+   * 1. EXTRACTION & CONFIG CHECK
+   * If req.cookies is undefined, it means app.use(cookieParser()) 
+   * is missing in your index.js.
+   */
+  if (!req.cookies) {
+    console.error("MIDDLEWARE ERROR: cookie-parser is not initialized in index.js");
+    return next(errorHandler(500, "Internal Server Configuration Error"));
   }
 
-  // 3. Verify the token using your JWT_SECRET
+  const token = req.cookies.access_token;
+
+  /**
+   * 2. EXISTENCE CHECK
+   * If the token is missing, the user is not logged in or 
+   * 'credentials: include' was missing in the frontend fetch.
+   */
+  if (!token) {
+    return next(errorHandler(401, "Unauthorized: Access denied."));
+  }
+
+  /**
+   * 3. JWT VERIFICATION
+   * Using the secret to decode the payload (id, isAdmin, etc.)
+   */
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) {
-      console.error("JWT Error:", err.message);
+      console.error("JWT VERIFICATION FAILED:", err.message);
 
-      // Handle specific expired token case
+      // Handle specific expiration to prompt a fresh login
       if (err.name === "TokenExpiredError") {
-        return next(errorHandler(401, "Token expired. Please log in again."));
+        return next(errorHandler(401, "Session expired. Please sign in again."));
       }
 
-      return next(errorHandler(401, "Unauthorized: Invalid token."));
+      return next(errorHandler(401, "Unauthorized: Invalid or manipulated token."));
     }
 
     /**
-     * 4. Attach decoded user data to the request object
-     * This allows subsequent controllers to use req.user.id or req.user.isAdmin
+     * 4. ATTACH DATA
+     * Attaching the decoded payload to 'req.user' so that
+     * routes like /api/user/update can access req.user.id
      */
     req.user = user;
 
-    // 5. Success - Proceed to the next middleware or controller
+    // 5. PROCEED
     next();
   });
 };

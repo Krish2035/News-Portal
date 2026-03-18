@@ -28,16 +28,20 @@ const connectDB = async () => {
     console.log("✅ Database connected successfully");
   } catch (err) {
     console.error("❌ Database connection error:", err);
-    if (process.env.NODE_ENV !== "production") process.exit(1);
   }
 };
 
-// --- CORS CONFIGURATION ---
-const allowedOrigins = ["http://localhost:5173", "http://localhost:3000", /\.vercel\.app$/];
+const allowedOrigins = [
+  "http://localhost:5173", 
+  "http://localhost:3000", 
+  "https://news-portal-nu-three.vercel.app"
+];
 
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.some(a => a instanceof RegExp ? a.test(origin) : a === origin)) {
+    if (!origin) return callback(null, true);
+    const isAllowed = allowedOrigins.includes(origin) || origin.endsWith(".vercel.app");
+    if (isAllowed) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
@@ -46,27 +50,24 @@ const corsOptions = {
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
 
+// Fixed for Express 5: Using Regex literal to avoid PathError
 app.options(/.*/, cors(corsOptions));
 
 app.use(cookieParser());
 app.use(express.json());
 
 app.use(async (req, res, next) => {
-  try {
-    await connectDB();
-    next();
-  } catch (error) {
-    res.status(500).json({ success: false, message: "DB Connection Error" });
-  }
+  await connectDB();
+  next();
 });
 
 app.use("/uploads", express.static(path_module.join(__dirname, "uploads")));
 
-// --- API ROUTES ---
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/post", postRoutes);
@@ -76,11 +77,8 @@ app.get("/", (req, res) => {
   res.json({ message: "News Nova API is live!" });
 });
 
-/**
- * FIXED FOR EXPRESS 5:
- * Catch-all 404 handler using Regex literal
- */
-app.all(/.*/, (req, res) => {
+// Standard catch-all for 404s
+app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: `Path ${req.originalUrl} not found.`,
@@ -100,7 +98,6 @@ if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
     console.log(`🚀 Local Server running on http://localhost:${PORT}`);
-    connectDB();
   });
 }
 
