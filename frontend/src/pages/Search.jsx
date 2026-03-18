@@ -25,9 +25,6 @@ const Search = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Define the Base URL for the API
-  const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
-
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const searchTermFromUrl = urlParams.get("searchTerm");
@@ -36,7 +33,6 @@ const Search = () => {
 
     if (searchTermFromUrl || sortFromUrl || categoryFromUrl) {
       setSidebarData({
-        ...sidebarData,
         searchTerm: searchTermFromUrl || "",
         sort: sortFromUrl || "desc",
         category: categoryFromUrl || "",
@@ -44,36 +40,44 @@ const Search = () => {
     }
 
     const fetchPosts = async () => {
+      setLoading(true);
+      const searchQuery = urlParams.toString();
       try {
-        setLoading(true);
-        const searchQuery = urlParams.toString();
-        
-        // UPDATED: Added backendBase to the fetch call
-        const res = await fetch(`${backendBase}/api/post/getposts?${searchQuery}`);
-
-        if (res.ok) {
-          const data = await res.json();
-          setPosts(data.posts);
+        // Use relative path for Vite Proxy consistency
+        const res = await fetch(`/api/post/getposts?${searchQuery}`);
+        if (!res.ok) {
           setLoading(false);
-          setShowMore(data.posts.length === 9);
-        } else {
-          setLoading(false);
-          console.error("Failed to fetch posts");
+          return;
         }
+        const data = await res.json();
+        setPosts(data.posts);
+        setLoading(false);
+        // If results match limit (9), there's likely more to load
+        setShowMore(data.posts.length === 9);
       } catch (error) {
         setLoading(false);
-        console.error("Error fetching posts:", error);
+        console.error("Search fetch error:", error);
       }
     };
     fetchPosts();
-  }, [location.search, backendBase]);
+  }, [location.search]);
+
+  const handleChange = (e) => {
+    if (e.target.id === "searchTerm") {
+      setSidebarData({ ...sidebarData, searchTerm: e.target.value });
+    }
+  };
+
+  const handleSelectChange = (id, value) => {
+    setSidebarData({ ...sidebarData, [id]: value });
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const urlParams = new URLSearchParams();
+    const urlParams = new URLSearchParams(location.search);
     urlParams.set("searchTerm", sidebarData.searchTerm);
     urlParams.set("sort", sidebarData.sort);
-    urlParams.set("category", sidebarData.category);
+    urlParams.set("category", sidebarData.category || "");
     navigate(`/search?${urlParams.toString()}`);
   };
 
@@ -81,96 +85,121 @@ const Search = () => {
     const startIndex = posts.length;
     const urlParams = new URLSearchParams(location.search);
     urlParams.set("startIndex", startIndex);
-    
     try {
-      // UPDATED: Added backendBase to the fetch call
-      const res = await fetch(`${backendBase}/api/post/getposts?${urlParams.toString()}`);
+      const res = await fetch(`/api/post/getposts?${urlParams.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setPosts([...posts, ...data.posts]);
         setShowMore(data.posts.length === 9);
       }
     } catch (error) {
-      console.error("Error loading more posts:", error);
+      console.error("Show more error:", error);
     }
   };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen">
-      {/* SIDEBAR */}
-      <aside className="p-6 md:w-1/4 bg-white border-r border-gray-300">
-        <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
-          <h2 className="text-2xl font-semibold text-gray-600">Filters</h2>
+    <div className="flex flex-col md:flex-row min-h-screen bg-slate-50">
+      {/* SIDEBAR FILTERS */}
+      <aside className="p-7 md:w-80 bg-white border-r border-slate-200 shadow-sm">
+        <form className="flex flex-col gap-8" onSubmit={handleSubmit}>
           <div className="flex flex-col gap-2">
-            <label className="font-medium text-gray-600 text-sm">Search Term:</label>
+            <h2 className="text-xl font-bold text-slate-800 tracking-tight">Filters</h2>
+            <p className="text-xs text-slate-500">Refine your news feed</p>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <label className="font-bold text-slate-700 text-sm ml-1">Search Keywords</label>
             <Input
-              placeholder="Search..."
+              placeholder="e.g. Technology, AI..."
               id="searchTerm"
               type="text"
+              className="rounded-xl border-slate-200"
               value={sidebarData.searchTerm}
-              onChange={(e) => setSidebarData({ ...sidebarData, searchTerm: e.target.value })}
+              onChange={handleChange}
             />
           </div>
-          <div className="flex flex-col gap-2">
-            <label className="font-medium text-gray-600 text-sm">Sort By:</label>
+
+          <div className="flex flex-col gap-3">
+            <label className="font-bold text-slate-700 text-sm ml-1">Sort Order</label>
             <Select
-              onValueChange={(value) => setSidebarData({ ...sidebarData, sort: value })}
+              onValueChange={(val) => handleSelectChange("sort", val)}
               value={sidebarData.sort}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Order" />
+              <SelectTrigger className="rounded-xl border-slate-200">
+                <SelectValue placeholder="Latest first" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="desc">Latest</SelectItem>
-                <SelectItem value="asc">Oldest</SelectItem>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="desc">Latest Articles</SelectItem>
+                <SelectItem value="asc">Oldest Articles</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className="flex flex-col gap-2">
-            <label className="font-medium text-gray-600 text-sm">Category:</label>
+
+          <div className="flex flex-col gap-3">
+            <label className="font-bold text-slate-700 text-sm ml-1">Category</label>
             <Select
-              onValueChange={(value) => setSidebarData({ ...sidebarData, category: value })}
+              onValueChange={(val) => handleSelectChange("category", val)}
               value={sidebarData.category}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Category" />
+              <SelectTrigger className="rounded-xl border-slate-200">
+                <SelectValue placeholder="All Categories" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-xl">
                 <SelectItem value="worldnews">World News</SelectItem>
-                <SelectItem value="sportsnews">Sports News</SelectItem>
+                <SelectItem value="sportsnews">Sports</SelectItem>
                 <SelectItem value="localnews">Local News</SelectItem>
+                <SelectItem value="technology">Technology</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <Button type="submit" className="w-full bg-slate-800 text-white">
+
+          <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 rounded-2xl shadow-lg transition-all">
             Apply Filters
           </Button>
         </form>
       </aside>
 
-      {/* MAIN CONTENT AREA */}
-      <div className="flex-1">
-        <h1 className="text-2xl font-bold border-b p-4 text-slate-700">
-          News Articles:
-        </h1>
+      {/* RESULTS AREA */}
+      <main className="flex-1 p-7">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-5 mb-8">
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+            Search Results
+          </h1>
+          {!loading && <span className="text-sm font-medium text-slate-500">{posts.length} articles found</span>}
+        </div>
         
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-          {loading && <p className="text-xl text-gray-500 animate-pulse col-span-full">Loading...</p>}
-          {!loading && posts.length === 0 && <p className="text-xl text-gray-500 col-span-full">No posts found.</p>}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
+          {loading && (
+            <div className="col-span-full py-20 text-center">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+              <p className="mt-4 text-slate-500 font-medium">Searching News Nova...</p>
+            </div>
+          )}
+
+          {!loading && posts.length === 0 && (
+            <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-dashed border-slate-300">
+              <p className="text-slate-400 font-medium text-lg">No articles match your criteria.</p>
+              <Button variant="link" onClick={() => navigate('/search')} className="text-blue-600">Clear all filters</Button>
+            </div>
+          )}
           
           {!loading && posts && posts.map((post) => (
             <PostCard key={post._id} post={post} />
           ))}
 
           {showMore && (
-            <div className="col-span-full flex justify-center mt-4">
-              <button onClick={handleShowMore} className="text-blue-600 hover:underline">
-                Show More
-              </button>
+            <div className="col-span-full flex justify-center py-10">
+              <Button 
+                variant="outline" 
+                onClick={handleShowMore} 
+                className="rounded-full px-10 border-blue-200 text-blue-600 font-bold hover:bg-blue-50"
+              >
+                Load More Articles
+              </Button>
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 };

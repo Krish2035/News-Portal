@@ -11,18 +11,33 @@ import {
 
 const router = express.Router();
 
-// Middleware verifyToken ensures req.user is populated for createComment
+/**
+ * --- COMMENT ROUTES ---
+ * Base path: /api/comment
+ */
+
+// Create a new comment (Authenticated users only)
+// Path: /api/comment/create
 router.post("/create", verifyToken, createComment);
 
-// This ":postId" MUST match req.params.postId in the controller
+// Get all comments for a specific post
+// Path: /api/comment/getPostComments/:postId
 router.get("/getPostComments/:postId", getPostComments);
 
-router.put("/likeComment/:commentId", verifyToken, likeComment)
+// Like or unlike a comment
+// Path: /api/comment/likeComment/:commentId
+router.put("/likeComment/:commentId", verifyToken, likeComment);
 
-router.put("/editComment/:commentId", verifyToken, editComment)
+// Edit an existing comment (Owner only)
+// Path: /api/comment/editComment/:commentId
+router.put("/editComment/:commentId", verifyToken, editComment);
 
-router.delete("/deleteComment/:commentId", verifyToken, deleteComment)
+// Delete a comment (Owner or Admin)
+// Path: /api/comment/deleteComment/:commentId
+router.delete("/deleteComment/:commentId", verifyToken, deleteComment);
 
-router.get("/getcomments", verifyToken, getComments)
+// Get all comments across the portal (Admin only)
+// Path: /api/comment/getcomments
+router.get("/getcomments", verifyToken, getComments);
 
 export default router;

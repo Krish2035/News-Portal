@@ -3,13 +3,13 @@ import { errorHandler } from "./error.js";
 
 export const verifyToken = (req, res, next) => {
   // 1. Extract the token from cookies
-  // Ensure 'cookie-parser' is initialized in index.js before routes
+  // The ?. ensures we don't crash if cookies are missing entirely
   const token = req.cookies?.access_token;
 
   // 2. Check if the token exists
   if (!token) {
     console.error(
-      "Auth Error: No access_token found. Ensure credentials: true is set in fetch/axios.",
+      "Auth Error: No access_token found. Ensure 'credentials: true' is set in your frontend fetch/axios config."
     );
     return next(errorHandler(401, "Unauthorized: No token provided."));
   }
@@ -27,11 +27,13 @@ export const verifyToken = (req, res, next) => {
       return next(errorHandler(401, "Unauthorized: Invalid token."));
     }
 
-    // 4. Attach decoded user data (id, isAdmin) to the request object
-    // This allows controllers to check if (req.user.isAdmin)
+    /**
+     * 4. Attach decoded user data to the request object
+     * This allows subsequent controllers to use req.user.id or req.user.isAdmin
+     */
     req.user = user;
 
-    // 5. Success - Move to the next middleware or controller
+    // 5. Success - Proceed to the next middleware or controller
     next();
   });
 };

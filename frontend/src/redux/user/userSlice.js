@@ -1,70 +1,66 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-    currentUser: null,
-    error: null,
-    loading: false,
-}
+  currentUser: null,
+  error: null,
+  loading: false,
+};
 
 const userSlice = createSlice({
   name: "user",
   initialState,
   reducers: {
+    // --- SIGN IN ---
     signInStart: (state) => {
       state.loading = true;
       state.error = null;
     },
-
     signInSuccess: (state, action) => {
       state.currentUser = action.payload;
       state.loading = false;
       state.error = null;
     },
-
     signInFailure: (state, action) => {
       state.loading = false;
       state.error = action.payload;
     },
 
+    // --- UPDATE USER ---
     updateStart: (state) => {
       state.loading = true;
       state.error = null;
     },
-
     updateSuccess: (state, action) => {
       state.currentUser = action.payload;
       state.loading = false;
       state.error = null;
     },
-
     updateFailure: (state, action) => {
       state.loading = false;
       state.error = action.payload;
     },
 
+    // --- DELETE USER ---
     deleteUserStart: (state) => {
       state.loading = true;
       state.error = null;
     },
-
     deleteUserSuccess: (state) => {
       state.currentUser = null;
       state.loading = false;
       state.error = null;
     },
-
     deleteUserFailure: (state, action) => {
       state.loading = false;
       state.error = action.payload;
     },
 
+    // --- SIGN OUT ---
     signOutSuccess: (state) => {
-      state.currentUser = null
-      state.error = null
-      state.loading = false
+      state.currentUser = null;
+      state.error = null;
+      state.loading = false;
     },
-
-    
   },
 });
 
@@ -79,6 +75,6 @@ export const {
   deleteUserSuccess,
   deleteUserFailure,
   signOutSuccess,
-} = userSlice.actions
+} = userSlice.actions;
 
-export default userSlice.reducer
+export default userSlice.reducer;

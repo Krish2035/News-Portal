@@ -13,6 +13,7 @@ import {
 } from "@/redux/user/userSlice";
 import GoogleAuth from "@/components/shared/GoogleAuth";
 
+// Form validation schema
 const schema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -21,10 +22,6 @@ const schema = z.object({
 const SignInForm = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
-  // Define the Base URL (Fallback to your Render/Vercel backend URL)
-  const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
-
   const { loading, error } = useSelector((state) => state.user);
 
   const {
@@ -35,132 +32,121 @@ const SignInForm = () => {
     resolver: zodResolver(schema),
   });
 
-  async function onSubmit(values) {
+  const onSubmit = async (values) => {
     try {
       dispatch(signInStart());
 
-      // UPDATED: Use backendBase to avoid hitting the frontend Vercel URL
-      const res = await fetch(`${backendBase}/api/auth/signin`, {
+      // Using the relative path to trigger the Vite Proxy (config we set earlier)
+      const res = await fetch("/api/auth/signin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
-        // This allows the browser to save the cookie sent by the server
-        credentials: "include",
       });
 
-      // Safely check if response is JSON to avoid "Unexpected token T"
-      const contentType = res.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        const data = await res.json();
+      const data = await res.json();
 
-        if (!res.ok) {
-          dispatch(signInFailure(data.message));
-          toast.error(data.message || "Sign in failed!");
-          return;
-        }
-
-        // Success logic
-        dispatch(signInSuccess(data));
-        toast.success("Sign in Successful!");
-        navigate("/");
-      } else {
-        // Handle case where server returns HTML error page
-        const errorText = await res.text();
-        console.error("Non-JSON response received:", errorText);
-        dispatch(signInFailure("Server error: Received HTML instead of JSON"));
-        toast.error("Server configuration error. Please try again later.");
+      if (!res.ok) {
+        dispatch(signInFailure(data.message));
+        toast.error(data.message || "Sign in failed!");
+        return;
       }
+
+      // Success logic
+      dispatch(signInSuccess(data));
+      toast.success("Welcome back to News Nova!");
+      navigate("/");
     } catch (err) {
       dispatch(signInFailure(err.message));
-      toast.error("Network error: Could not reach the server.");
+      toast.error("Could not connect to the server.");
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen mt-20">
-      <div className="flex p-3 max-w-3xl sm:max-w-5xl mx-auto flex-col md:flex-row md:items-center gap-5">
-        <div className="flex-1">
-          <Link
-            to={"/"}
-            className="font-bold text-2xl sm:text-4xl flex flex-wrap"
-          >
-            <span className="text-slate-500">News</span>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+      <div className="flex w-full max-w-4xl flex-col md:flex-row items-center gap-10">
+        {/* Brand Side */}
+        <div className="flex-1 text-center md:text-left">
+          <Link to="/" className="font-bold text-4xl flex gap-1 justify-center md:justify-start">
+            <span className="text-blue-600">News</span>
             <span className="text-slate-900">Nova</span>
           </Link>
-
-          <h2 className="text-[24px] md:text-[30px] font-bold leading-[140%] tracking-tighter pt-5 sm:pt-12">
+          <h2 className="text-3xl font-bold tracking-tight text-slate-900 mt-6">
             Sign in to your account.
           </h2>
-
-          <p className="text-slate-500 text-[14px] font-medium mt-2">
-            Welcome back, Please provide your details as required
+          <p className="text-slate-500 mt-2 font-medium">
+            Join our community and stay updated with the latest news.
           </p>
         </div>
 
-        <div className="flex-1">
+        {/* Form Side */}
+        <div className="flex-1 w-full max-w-md">
           <form
             onSubmit={handleSubmit(onSubmit)}
-            className="space-y-4 bg-white p-6 rounded shadow-md"
+            className="space-y-4 bg-white p-8 rounded-2xl shadow-xl border border-slate-100"
           >
-            {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-slate-700">
+              <label className="block text-sm font-semibold text-slate-700 mb-1">
                 Email
               </label>
               <input
                 {...register("email")}
-                type="text"
-                placeholder="xyz@gmail.com"
-                className="mt-1 block w-full rounded border-gray-300 shadow-sm p-3"
+                type="email"
+                placeholder="name@company.com"
+                className="w-full rounded-xl border border-slate-200 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
               />
               {errors.email && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.email.message}
-                </p>
+                <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
               )}
             </div>
 
-            {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-slate-700">
+              <label className="block text-sm font-semibold text-slate-700 mb-1">
                 Password
               </label>
               <input
                 {...register("password")}
                 type="password"
-                placeholder="Enter your password here..."
-                className="mt-1 block w-full rounded border-gray-300 shadow-sm p-3"
+                placeholder="••••••••"
+                className="w-full rounded-xl border border-slate-200 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
               />
               {errors.password && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.password.message}
-                </p>
+                <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
               )}
             </div>
 
-            {/* Button */}
             <Button
               type="submit"
-              className="bg-blue-500 py-6 rounded-2xl w-full text-white hover:bg-blue-600 transition-colors"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-xl font-bold text-lg transition-all"
               disabled={loading}
             >
-              {loading ? "Loading..." : "Sign In"}
+              {loading ? "Verifying..." : "Sign In"}
             </Button>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-slate-200"></span>
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-slate-500">Or continue with</span>
+              </div>
+            </div>
 
             <GoogleAuth />
 
-            <div className="flex gap-2 text-sm mt-5">
-              <span>Don't have an Account?</span>
-              <Link to={"/sign-up"} className="text-blue-500 hover:underline">
-                Sign Up
+            <p className="text-center text-sm text-slate-600 mt-6">
+              New to News Nova?{" "}
+              <Link to="/sign-up" className="text-blue-600 font-bold hover:underline">
+                Create an account
               </Link>
-            </div>
+            </p>
           </form>
 
           {error && (
-            <p className="text-red-500 text-center text-sm mt-4 font-semibold bg-red-50 p-2 rounded">
-              {error}
-            </p>
+            <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-xl">
+              <p className="text-red-600 text-center text-sm font-medium">
+                {error}
+              </p>
+            </div>
           )}
         </div>
       </div>

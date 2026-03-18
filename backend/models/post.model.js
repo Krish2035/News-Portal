@@ -3,7 +3,8 @@ import mongoose from "mongoose";
 const postSchema = new mongoose.Schema(
   {
     userId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // Links this post to a User
       required: true,
     },
     title: {
@@ -17,8 +18,7 @@ const postSchema = new mongoose.Schema(
     },
     image: {
       type: String,
-      default:
-        "https://images.pexels.com/photos/3944463/pexels-photo-3944463.jpeg",
+      default: "https://images.pexels.com/photos/3944463/pexels-photo-3944463.jpeg",
     },
     content: {
       type: String,
@@ -30,10 +30,8 @@ const postSchema = new mongoose.Schema(
       unique: true,
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
-// FIXED: Changed 'postschema' to 'postSchema' to match the variable above
 const Post = mongoose.model("Post", postSchema);
-
 export default Post;

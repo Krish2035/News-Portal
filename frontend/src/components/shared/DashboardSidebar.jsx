@@ -1,79 +1,80 @@
-import { signOutSuccess } from "@/redux/user/userSlice";
-import React from "react";
-import { FaComments, FaUserCircle, FaUsers } from "react-icons/fa";
-import { RiLogoutBoxRFill } from "react-icons/ri";
+import React, { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { Link } from "react-router-dom";
+import { signOutSuccess } from "@/redux/user/userSlice";
+import { FaComments, FaUserCircle, FaUsers, FaNewspaper } from "react-icons/fa";
+import { RiLogoutBoxRFill } from "react-icons/ri";
 import { IoIosCreate } from "react-icons/io";
 import { MdDashboardCustomize } from "react-icons/md";
 
 const DashboardSidebar = () => {
   const dispatch = useDispatch();
+  const location = useLocation();
   const { currentUser } = useSelector((state) => state.user);
+  const [tab, setTab] = useState("");
+
+  // Track the current tab for active styling
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const tabFromUrl = urlParams.get("tab");
+    if (tabFromUrl) {
+      setTab(tabFromUrl);
+    }
+  }, [location.search]);
 
   const handleSignout = async () => {
     try {
       /**
-       * 🚨 CRITICAL: Use the ABSOLUTE URL of your backend.
-       * If you use a relative path like "/api/user/signout", 
-       * the frontend looks for the route on its own domain, which causes a 404.
+       * FULL POWER PRO-TIP: 
+       * Use the relative path. Vite's proxy handles the rest.
+       * This avoids hardcoding Vercel URLs which change between environments.
        */
-      const BACKEND_URL = "https://news-portal-nu-three.vercel.app"; 
-      
-      const res = await fetch(`${BACKEND_URL}/api/user/signout`, {
+      const res = await fetch("/api/user/signout", {
         method: "POST",
-        // No headers needed for a simple signout unless you send data
       });
+      const data = await res.json();
 
-      const contentType = res.headers.get("content-type");
-
-      // Check if the response is actually JSON before parsing
-      if (contentType && contentType.includes("application/json")) {
-        const data = await res.json();
-        if (!res.ok) {
-          console.error("Signout failed:", data.message);
-        } else {
-          // Successfully logged out from backend
-          dispatch(signOutSuccess());
-        }
+      if (!res.ok) {
+        console.error("Signout failed:", data.message);
       } else {
-        /**
-         * If we hit this, Vercel is sending back HTML (likely a 404 page).
-         * This usually means the BACKEND_URL or the route path is wrong.
-         */
-        console.error("The server returned HTML instead of JSON. Check your backend URL/Routes.");
+        dispatch(signOutSuccess());
       }
     } catch (error) {
       console.log("Signout Error:", error);
     }
   };
 
+  // Helper for active link styling
+  const activeClass = (currentTab) => 
+    `flex items-center p-3 rounded-lg transition-all duration-200 ${
+      tab === currentTab 
+      ? "bg-blue-600 text-white shadow-md font-bold" 
+      : "hover:bg-slate-300 text-slate-700 font-medium"
+    }`;
+
   return (
-    <aside className="h-screen w-64 bg-slate-200 text-slate-800 flex flex-col">
-      <div className="p-4 flex items-center justify-center bg-slate-200 border-b border-slate-300">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+    <aside className="h-screen w-64 bg-slate-100 border-r border-slate-200 flex flex-col">
+      <div className="p-6 flex items-center justify-center border-b border-slate-200 bg-white">
+        <h1 className="text-xl font-bold tracking-tighter">
+          <span className="text-blue-700">News</span>
+          <span className="text-red-600">Nova</span>
+        </h1>
       </div>
 
-      <nav className="flex-1 p-4 flex flex-col justify-between">
-        <ul className="space-y-2">
+      <nav className="flex-1 p-4 flex flex-col justify-between overflow-y-auto">
+        <ul className="space-y-1">
           {currentUser?.isAdmin && (
             <li>
-              <Link
-                to={"/dashboard?tab=dashboard"}
-                className="flex items-center p-2 hover:bg-slate-300 rounded"
-              >
-                <MdDashboardCustomize className="mr-3" />
+              <Link to="/dashboard?tab=dashboard" className={activeClass("dashboard")}>
+                <MdDashboardCustomize className="mr-3 text-lg" />
                 <span>Dashboard</span>
               </Link>
             </li>
           )}
           
           <li>
-            <Link
-              to="/dashboard?tab=profile"
-              className="flex items-center p-2 hover:bg-slate-300 rounded"
-            >
-              <FaUserCircle className="mr-3" />
+            <Link to="/dashboard?tab=profile" className={activeClass("profile")}>
+              <FaUserCircle className="mr-3 text-lg" />
               <span>Profile</span>
             </Link>
           </li>
@@ -81,38 +82,26 @@ const DashboardSidebar = () => {
           {currentUser?.isAdmin && (
             <>
               <li>
-                <Link
-                  to="/create-post"
-                  className="flex items-center p-2 hover:bg-slate-300 rounded"
-                >
-                  <IoIosCreate className="mr-3" />
-                  <span>Create Post</span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/dashboard?tab=posts"
-                  className="flex items-center p-2 hover:bg-slate-300 rounded"
-                >
-                  <IoIosCreate className="mr-3" />
+                <Link to="/dashboard?tab=posts" className={activeClass("posts")}>
+                  <FaNewspaper className="mr-3 text-lg" />
                   <span>Your Articles</span>
                 </Link>
               </li>
               <li>
-                <Link
-                  to="/dashboard?tab=users"
-                  className="flex items-center p-2 hover:bg-slate-300 rounded"
-                >
-                  <FaUsers className="mr-3" />
+                <Link to="/create-post" className="flex items-center p-3 rounded-lg hover:bg-slate-300 text-slate-700 font-medium transition-all">
+                  <IoIosCreate className="mr-3 text-lg" />
+                  <span>Create Post</span>
+                </Link>
+              </li>
+              <li>
+                <Link to="/dashboard?tab=users" className={activeClass("users")}>
+                  <FaUsers className="mr-3 text-lg" />
                   <span>All Users</span>
                 </Link>
               </li>
               <li>
-                <Link
-                  to={"/dashboard?tab=comments"}
-                  className="flex items-center p-2 hover:bg-slate-300 rounded"
-                >
-                  <FaComments className="mr-3" />
+                <Link to="/dashboard?tab=comments" className={activeClass("comments")}>
+                  <FaComments className="mr-3 text-lg" />
                   <span>All Comments</span>
                 </Link>
               </li>
@@ -120,12 +109,12 @@ const DashboardSidebar = () => {
           )}
         </ul>
 
-        <div className="pt-4 border-t border-slate-400">
+        <div className="pt-4 border-t border-slate-200">
           <button
-            className="flex items-center w-full p-2 hover:bg-slate-300 rounded text-red-600 font-medium transition-colors"
+            className="flex items-center w-full p-3 rounded-lg text-red-600 font-bold hover:bg-red-50 transition-colors"
             onClick={handleSignout}
           >
-            <RiLogoutBoxRFill className="text-lg" />
+            <RiLogoutBoxRFill className="text-xl" />
             <span className="ml-3">Logout</span>
           </button>
         </div>

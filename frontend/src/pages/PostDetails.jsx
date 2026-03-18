@@ -1,8 +1,6 @@
-import { Button } from "@/components/ui/button";
 import React, { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { Separator } from "@/components/ui/separator";
-import CommentSection from "@/components/shared/CommentSection";
+import { useParams, Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import PostCard from "@/components/shared/PostCard";
 
 const PostDetails = () => {
@@ -10,32 +8,7 @@ const PostDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [post, setPost] = useState(null);
-  const [recentArticles, setRecentArticles] = useState(null);
-
-  // Define the backend base URL for local development
-  const baseBackendUrl = "http://localhost:3000";
-
-  // FIX: Helper to handle Appwrite transformation block (403 error)
-  const getSafeImageUrl = (url) => {
-    if (!url) return "https://via.placeholder.com/1200x600?text=News+Nova";
-    
-    // If it's a relative path (local storage), append the local backend URL
-    if (url.startsWith('/uploads') || !url.includes('http')) {
-      return `${baseBackendUrl}${url}`;
-    }
-
-    // If it's an Appwrite URL, bypass transformation block by using /view
-    if (url.includes('appwrite.io')) {
-      let safeUrl = url.replace('/preview', '/view');
-      const basePart = safeUrl.split('?')[0];
-      const projectPart = safeUrl.includes('project=') 
-        ? `?project=${new URLSearchParams(safeUrl.split('?')[1]).get('project')}` 
-        : '';
-      return `${basePart}${projectPart}`;
-    }
-
-    return url;
-  };
+  const [recentPosts, setRecentPosts] = useState(null);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -43,13 +16,11 @@ const PostDetails = () => {
         setLoading(true);
         const res = await fetch(`/api/post/getposts?slug=${postSlug}`);
         const data = await res.json();
-
         if (!res.ok) {
           setError(true);
           setLoading(false);
           return;
         }
-
         if (res.ok) {
           setPost(data.posts[0]);
           setLoading(false);
@@ -64,118 +35,77 @@ const PostDetails = () => {
   }, [postSlug]);
 
   useEffect(() => {
-    const fetchRecentPosts = async () => {
-      try {
-        const res = await fetch(`/api/recent-posts`); // Use your specific recent articles endpoint
+    try {
+      const fetchRecentPosts = async () => {
+        const res = await fetch(`/api/post/getposts?limit=3`);
         const data = await res.json();
         if (res.ok) {
-          setRecentArticles(data.posts);
+          setRecentPosts(data.posts);
         }
-      } catch (error) {
-        console.log(error.message);
-      }
-    };
-    fetchRecentPosts();
+      };
+      fetchRecentPosts();
+    } catch (error) {
+      console.log(error.message);
+    }
   }, []);
 
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <img
-          src="https://cdn-icons-png.flaticon.com/128/39/39979.png"
-          alt="loading"
-          className="w-20 animate-spin opacity-50"
-        />
-      </div>
-    );
-  }
-
-  if (error || !post) {
-    return (
-      <div className="text-center mt-20 text-slate-500">
-        Post not found or something went wrong.
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600"></div>
       </div>
     );
   }
 
   return (
-    <main className="p-3 flex flex-col max-w-6xl m-auto min-h-screen">
+    <main className="p-3 flex flex-col max-w-6xl mx-auto min-h-screen">
       {/* Article Header */}
-      <h1 className="text-3xl mt-10 p-3 text-center font-bold max-w-4xl mx-auto lg:text-5xl text-slate-800 leading-tight">
-        {post.title}
+      <h1 className="text-3xl mt-10 p-3 text-center font-serif max-w-2xl mx-auto lg:text-5xl font-bold text-slate-900 leading-tight">
+        {post && post.title}
       </h1>
 
       <Link
-        to={`/search?category=${post.category}`}
+        to={`/search?category=${post && post.category}`}
         className="self-center mt-5"
       >
-        <Button
-          variant="outline"
-          className="border border-blue-500 text-blue-600 rounded-full hover:bg-blue-50 transition-colors uppercase text-xs font-bold px-5"
-        >
-          {post.category}
+        <Button color="gray" pill size="xs" className="bg-slate-100 text-slate-800 hover:bg-red-600 hover:text-white transition-all uppercase text-xs font-bold px-4 py-1 rounded-full">
+          {post && post.category}
         </Button>
       </Link>
 
-      {/* Main Post Image with Appwrite 403 Fix Applied */}
+      {/* Featured Image */}
       <img
-        src={getSafeImageUrl(post.image)}
-        alt={post.title}
-        className="mt-10 max-h-[600px] w-full object-cover rounded-xl shadow-xl border border-slate-200"
-        onError={(e) => {
-          e.target.src = "https://via.placeholder.com/1200x600?text=News+Nova+Image+Unavailable";
-        }}
+        src={post && post.image}
+        alt={post && post.title}
+        className="mt-10 p-3 max-h-[600px] w-full object-cover rounded-3xl shadow-2xl"
       />
 
-      {/* Metadata Row */}
-      <div className="flex justify-between items-center p-4 mx-auto w-full max-w-3xl text-sm text-slate-500 border-b border-slate-200 mt-8">
-        <span className="font-medium">
-          {new Date(post.createdAt).toLocaleDateString("en-US", {
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          })}
-        </span>
-        <span className="italic bg-slate-100 px-3 py-1 rounded-full text-xs text-slate-600">
-          {Math.max(1, (post.content.length / 1000).toFixed(0))} min read
+      {/* Metadata */}
+      <div className="flex justify-between p-3 border-b border-slate-300 mx-auto w-full max-w-2xl text-xs sm:text-sm font-semibold text-slate-500 italic">
+        <span>{post && new Date(post.createdAt).toLocaleDateString()}</span>
+        <span className="text-red-600">
+          {post && (post.content.length / 1000).toFixed(0)} mins read
         </span>
       </div>
 
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-          .post-content p { margin-bottom: 1.5rem; line-height: 1.8; color: #334155; font-size: 1.125rem; }
-          .post-content b, .post-content strong { color: #0f172a; font-weight: 700; }
-          .post-content h2 { font-size: 1.875rem; font-weight: 700; margin-top: 2.5rem; margin-bottom: 1.25rem; color: #1e293b; border-left: 4px solid #1d4ed8; padding-left: 1rem; }
-          .post-content img { border-radius: 0.75rem; margin: 2rem 0; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
-        `,
-        }}
-      />
-
+      {/* Main Content (Rich Text Rendering) */}
       <div
-        className="p-6 max-w-3xl mx-auto w-full post-content break-words"
-        dangerouslySetInnerHTML={{ __html: post.content }}
+        className="p-3 max-w-3xl mx-auto w-full post-content leading-relaxed text-slate-800"
+        dangerouslySetInnerHTML={{ __html: post && post.content }}
       ></div>
 
-      <Separator className="my-10 bg-slate-200 max-w-4xl mx-auto" />
+      <hr className="border-slate-200 my-10" />
 
-      {/* Engagement Section */}
-      <div className="max-w-3xl mx-auto w-full">
-        <CommentSection postId={post._id} />
-      </div>
-
-      {/* Recent Articles Grid */}
-      <section className="flex flex-col justify-center items-center mb-10 border-t border-slate-100 pt-10">
-        <h2 className="text-2xl font-bold mb-8 text-slate-800">
-          Recently Published Articles
-        </h2>
-        <div className="flex flex-wrap gap-8 justify-center">
-          {recentArticles &&
-            recentArticles.map((article) => (
-              <PostCard key={article._id} post={article} />
+      {/* Recent News Section */}
+      <div className="flex flex-col justify-center items-center mb-10">
+        <h2 className="text-2xl font-bold mb-8 text-slate-900">Recent Stories in News Nova</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full px-4">
+          {recentPosts &&
+            recentPosts.map((recentPost) => (
+              <PostCard key={recentPost._id} post={recentPost} />
             ))}
         </div>
-      </section>
+      </div>
     </main>
   );
 };

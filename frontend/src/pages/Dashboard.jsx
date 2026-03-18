@@ -1,52 +1,49 @@
-import BottomNavBar from '@/components/shared/BottomNavBar'
-import DashboardComments from '@/components/shared/DashboardComments'
-import DashboardPosts from '@/components/shared/DashboardPosts'
-import DashboardProfile from '@/components/shared/DashboardProfile'
-import DashboardSidebar from '@/components/shared/DashboardSidebar'
-import DashboardUsers from '@/components/shared/DashboardUsers'
-import MainDashboard from '@/components/shared/MainDashboard'
-import React, { useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import DashboardSidebar from '@/components/shared/DashboardSidebar';
+import BottomNavBar from '@/components/shared/BottomNavBar';
+import DashboardProfile from '@/components/shared/DashboardProfile';
+import DashboardPosts from '@/components/shared/DashboardPosts';
+import DashboardUsers from '@/components/shared/DashboardUsers';
+import DashboardComments from '@/components/shared/DashboardComments';
+import MainDashboard from '@/components/shared/MainDashboard';
 
 const Dashboard = () => {
-  const location = useLocation()
-  const [tab, setTab] = useState("")
+  const location = useLocation();
+  const [tab, setTab] = useState("");
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(location.search)
-    const tabFromUrl = urlParams.get("tab")
-
-    if(tabFromUrl){
-      setTab(tabFromUrl)
+    const urlParams = new URLSearchParams(location.search);
+    const tabFromUrl = urlParams.get("tab");
+    if (tabFromUrl) {
+      setTab(tabFromUrl);
+    } else {
+      setTab("dashboard"); // Default fallback
     }
-  }, [location.search])
+  }, [location.search]);
+
   return (
-    <div className="min-h-screen flex flex-col md:flex-row w-full">
-      {/* Sidebar */}
-      <div className="hidden md:block">
+    <div className="min-h-screen flex flex-col md:flex-row w-full bg-slate-50">
+      {/* Sidebar - Desktop Only */}
+      <div className="hidden md:block border-r border-slate-200">
         <DashboardSidebar />
       </div>
 
+      {/* Navigation - Mobile Only */}
       <BottomNavBar />
 
-      <div className="w-full">
-        {/* profile */}
-        {tab === "profile" && <DashboardProfile />}
-
-        {/* news articles */}
-        {tab === "posts" && <DashboardPosts />}
-
-        {/* users */}
-        {tab === "users" && <DashboardUsers />}
-
-        {/* Comments */}
-        {tab === "comments" && <DashboardComments />}
-
-        {/* dashboard main component */}
-        {tab === "dashboard" && <MainDashboard />}
-      </div>
+      {/* Main Content Area */}
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+        <div className="max-w-7xl mx-auto">
+          {tab === "profile" && <DashboardProfile />}
+          {tab === "posts" && <DashboardPosts />}
+          {tab === "users" && <DashboardUsers />}
+          {tab === "comments" && <DashboardComments />}
+          {(tab === "dashboard" || !tab) && <MainDashboard />}
+        </div>
+      </main>
     </div>
   );
-}
+};
 
-export default Dashboard
+export default Dashboard;
