@@ -1,10 +1,12 @@
-// src/lib/appwrite/api.js
+// frontend/src/utils/api.js
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://news-portal-7g52.vercel.app";
 
 const apiRequest = async (endpoint, options = {}) => {
   const { method = "GET", body = null, headers = {} } = options;
-
-  const url = endpoint.startsWith("http") ? endpoint : `${API_BASE_URL}${endpoint}`;
+  
+  // Ensure the URL is correctly constructed without double slashes
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = endpoint.startsWith("http") ? endpoint : `${API_BASE_URL}${cleanEndpoint}`;
 
   const fetchOptions = {
     method,
@@ -12,7 +14,7 @@ const apiRequest = async (endpoint, options = {}) => {
       "Content-Type": "application/json",
       ...headers,
     },
-    credentials: "include", 
+    credentials: "include", // Required for cross-origin cookies/auth
   };
 
   if (body) {

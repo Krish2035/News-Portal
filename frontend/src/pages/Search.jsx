@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+// CRITICAL: Double check if your file is 'PostCard.jsx' or 'Postcard.jsx'
 import PostCard from "@/components/shared/PostCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ const Search = () => {
   const [sidebarData, setSidebarData] = useState({
     searchTerm: "",
     sort: "desc",
-    category: "",
+    category: "worldnews", // Defaulting to a valid category or empty string
   });
 
   const [posts, setPosts] = useState([]);
@@ -43,7 +44,6 @@ const Search = () => {
       setLoading(true);
       const searchQuery = urlParams.toString();
       try {
-        // Use relative path for Vite Proxy consistency
         const res = await fetch(`/api/post/getposts?${searchQuery}`);
         if (!res.ok) {
           setLoading(false);
@@ -52,7 +52,7 @@ const Search = () => {
         const data = await res.json();
         setPosts(data.posts);
         setLoading(false);
-        // If results match limit (9), there's likely more to load
+        // Standard limit is usually 9 for these templates
         setShowMore(data.posts.length === 9);
       } catch (error) {
         setLoading(false);
@@ -69,15 +69,17 @@ const Search = () => {
   };
 
   const handleSelectChange = (id, value) => {
-    setSidebarData({ ...sidebarData, [id]: value });
+    // If user selects "all", we set category to empty string
+    const finalValue = value === "uncategorized" ? "" : value;
+    setSidebarData({ ...sidebarData, [id]: finalValue });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const urlParams = new URLSearchParams(location.search);
+    const urlParams = new URLSearchParams();
     urlParams.set("searchTerm", sidebarData.searchTerm);
     urlParams.set("sort", sidebarData.sort);
-    urlParams.set("category", sidebarData.category || "");
+    urlParams.set("category", sidebarData.category);
     navigate(`/search?${urlParams.toString()}`);
   };
 
@@ -113,7 +115,7 @@ const Search = () => {
               placeholder="e.g. Technology, AI..."
               id="searchTerm"
               type="text"
-              className="rounded-xl border-slate-200"
+              className="rounded-xl border-slate-200 bg-white"
               value={sidebarData.searchTerm}
               onChange={handleChange}
             />
@@ -125,10 +127,10 @@ const Search = () => {
               onValueChange={(val) => handleSelectChange("sort", val)}
               value={sidebarData.sort}
             >
-              <SelectTrigger className="rounded-xl border-slate-200">
+              <SelectTrigger className="rounded-xl border-slate-200 bg-white">
                 <SelectValue placeholder="Latest first" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl">
+              <SelectContent className="rounded-xl bg-white shadow-xl">
                 <SelectItem value="desc">Latest Articles</SelectItem>
                 <SelectItem value="asc">Oldest Articles</SelectItem>
               </SelectContent>
@@ -139,12 +141,13 @@ const Search = () => {
             <label className="font-bold text-slate-700 text-sm ml-1">Category</label>
             <Select
               onValueChange={(val) => handleSelectChange("category", val)}
-              value={sidebarData.category}
+              value={sidebarData.category || "uncategorized"}
             >
-              <SelectTrigger className="rounded-xl border-slate-200">
+              <SelectTrigger className="rounded-xl border-slate-200 bg-white">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl">
+              <SelectContent className="rounded-xl bg-white shadow-xl">
+                <SelectItem value="uncategorized">All Categories</SelectItem>
                 <SelectItem value="worldnews">World News</SelectItem>
                 <SelectItem value="sportsnews">Sports</SelectItem>
                 <SelectItem value="localnews">Local News</SelectItem>
@@ -171,7 +174,7 @@ const Search = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
           {loading && (
             <div className="col-span-full py-20 text-center">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent align-[-0.125em]"></div>
               <p className="mt-4 text-slate-500 font-medium">Searching News Nova...</p>
             </div>
           )}

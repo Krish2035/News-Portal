@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+// CRITICAL: Ensure 'select' matches your filename (e.g., Select.jsx vs select.jsx)
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
@@ -22,24 +23,30 @@ const EditPost = () => {
     image: "",
   });
   const [updatePostError, setUpdatePostError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   // Fetch the existing post data
   useEffect(() => {
     const fetchPost = async () => {
       try {
+        setLoading(true);
         const res = await fetch(`/api/post/getposts?postId=${postId}`);
         const data = await res.json();
         
         if (!res.ok) {
           setUpdatePostError(data.message);
+          setLoading(false);
           return;
         }
         if (res.ok) {
           setUpdatePostError(null);
-          setFormData(data.posts[0]);
+          // Ensure we don't set undefined values
+          setFormData(data.posts[0] || {});
+          setLoading(false);
         }
       } catch (error) {
         setUpdatePostError("Failed to fetch post data.");
+        setLoading(false);
       }
     };
     if (postId) fetchPost();
@@ -71,9 +78,12 @@ const EditPost = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!currentUser?._id || !formData?._id) {
+      return toast.error("User or Post identification missing");
+    }
+
     try {
       setUpdatePostError(null);
-      // Using relative path for Vite Proxy & Cookie handling
       const res = await fetch(`/api/post/updatepost/${formData._id}/${currentUser._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -95,6 +105,12 @@ const EditPost = () => {
       toast.error("Failed to update the post.");
     }
   };
+
+  if (loading) return (
+    <div className="flex justify-center items-center min-h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+    </div>
+  );
 
   return (
     <div className="p-6 max-w-4xl mx-auto min-h-screen">
@@ -119,7 +135,7 @@ const EditPost = () => {
             <SelectTrigger className="w-full sm:w-48 h-12 border-slate-200 rounded-xl font-medium">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
-            <SelectContent className="rounded-xl">
+            <SelectContent className="rounded-xl bg-white shadow-xl">
               <SelectItem value="worldnews">World News</SelectItem>
               <SelectItem value="sportsnews">Sports</SelectItem>
               <SelectItem value="localnews">Local</SelectItem>
