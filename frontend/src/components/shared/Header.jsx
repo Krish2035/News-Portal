@@ -32,6 +32,12 @@ const Header = () => {
     }
   }, [location.search]);
 
+  /**
+   * PRODUCTION FIX: Helper to determine the API base URL.
+   * This ensures your fetch calls go to the backend even on Vercel.
+   */
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+
   const getCorrectImageUrl = (url) => {
     if (!url) return null;
     if (url.includes('appwrite.io')) {
@@ -49,20 +55,24 @@ const Header = () => {
 
   const handleSignout = async () => {
     try {
-      const res = await fetch("/api/user/signout", {
+      // Use the API_BASE_URL to ensure the request hits the server correctly
+      const res = await fetch(`${API_BASE_URL}/api/user/signout`, {
         method: "POST",
         /** * PRODUCTION FIX: 
-         * Including credentials ensures the cookie is sent to the backend 
-         * so it can be cleared on Vercel's cross-site environment.
+         * Including credentials: "include" is vital for Vercel deployments
+         * to allow cross-origin cookie clearing.
          */
         credentials: "include", 
       });
+
       const data = await res.json();
+      
       if (res.ok) {
         dispatch(signOutSuccess());
         navigate("/sign-in");
       } else {
-        console.error(data.message);
+        // Log the actual error message from the backend
+        console.error("Signout Failed:", data.message || data);
       }
     } catch (error) {
       console.error("Signout Error:", error.message);

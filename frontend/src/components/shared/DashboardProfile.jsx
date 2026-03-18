@@ -35,6 +35,12 @@ const DashboardProfile = () => {
   const [imageFileUrl, setImageFileUrl] = useState(null);
   const [formData, setFormData] = useState({});
 
+  /**
+   * PRODUCTION FIX: Explicit Backend URL.
+   * Based on your screenshots, this is your live backend domain.
+   */
+  const API_BASE_URL = "https://news-portal-7g52.vercel.app";
+
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -83,10 +89,10 @@ const DashboardProfile = () => {
       const updateProfileData = { ...formData };
       if (imageFile) updateProfileData.profilePicture = profilePicture;
 
-      const res = await fetch(`/api/user/update/${currentUser._id}`, {
+      // FIXED: Use absolute path for production
+      const res = await fetch(`${API_BASE_URL}/api/user/update/${currentUser._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        // PRODUCTION FIX: Required to send/verify session cookies
         credentials: "include", 
         body: JSON.stringify(updateProfileData),
       });
@@ -104,37 +110,47 @@ const DashboardProfile = () => {
       }
     } catch (error) {
       dispatch(updateFailure(error.message));
+      toast.error("An unexpected error occurred");
     }
   };
 
   const handleSignout = async () => {
     try {
-      const res = await fetch("/api/user/signout", {
+      // FIXED: Use absolute path for production
+      const res = await fetch(`${API_BASE_URL}/api/user/signout`, {
         method: "POST",
-        credentials: "include", // PRODUCTION FIX
+        credentials: "include", 
       });
+      
       if (res.ok) {
         dispatch(signOutSuccess());
         navigate("/sign-in");
+        toast.success("Signed out successfully");
+      } else {
+        const data = await res.json();
+        console.error(data.message);
       }
     } catch (error) {
-      console.error(error);
+      console.error("Signout Error:", error.message);
     }
   };
 
   const handleDeleteUser = async () => {
     try {
       dispatch(deleteUserStart());
-      const res = await fetch(`/api/user/delete/${currentUser._id}`, {
+      // FIXED: Use absolute path for production
+      const res = await fetch(`${API_BASE_URL}/api/user/delete/${currentUser._id}`, {
         method: "DELETE",
-        credentials: "include", // PRODUCTION FIX
+        credentials: "include", 
       });
       const data = await res.json();
       if (!res.ok) {
         dispatch(deleteUserFailure(data.message));
+        toast.error(data.message);
       } else {
         dispatch(deleteUserSuccess(data));
         navigate("/sign-in");
+        toast.success("Account deleted successfully");
       }
     } catch (error) {
       dispatch(deleteUserFailure(error.message));
@@ -155,17 +171,20 @@ const DashboardProfile = () => {
             alt="profile"
             className={`rounded-full w-full h-full object-cover border-4 border-white shadow-lg transition-all duration-300 group-hover:brightness-90 ${loading ? "animate-pulse opacity-50" : ""}`}
             onClick={() => profilePicRef.current.click()}
+            onError={(e) => {
+              e.target.src = `https://ui-avatars.com/api/?name=${currentUser.username}&background=2563eb&color=fff`;
+            }}
           />
         </div>
 
         <div className="space-y-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-bold text-slate-700 ml-1">Username</label>
-            <input type="text" id="username" defaultValue={currentUser.username} className="h-12 border border-slate-200 rounded-xl px-4" onChange={handleChange} />
+            <input type="text" id="username" defaultValue={currentUser.username} className="h-12 border border-slate-200 rounded-xl px-4 focus:ring-2 focus:ring-blue-100 outline-none" onChange={handleChange} />
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-bold text-slate-700 ml-1">Email</label>
-            <input type="email" id="email" defaultValue={currentUser.email} className="h-12 border border-slate-200 rounded-xl px-4" onChange={handleChange} />
+            <input type="email" id="email" defaultValue={currentUser.email} className="h-12 border border-slate-200 rounded-xl px-4 focus:ring-2 focus:ring-blue-100 outline-none" onChange={handleChange} />
           </div>
         </div>
 
@@ -174,21 +193,27 @@ const DashboardProfile = () => {
         </Button>
       </form>
 
-      <div className="text-red-600 flex justify-between mt-5 font-bold cursor-pointer">
+      <div className="flex justify-between mt-8 pt-6 border-t border-slate-100">
         <AlertDialog>
-          <AlertDialogTrigger>Delete Account</AlertDialogTrigger>
+          <AlertDialogTrigger asChild>
+            <span className="text-red-500 hover:text-red-700 font-bold cursor-pointer transition-colors">Delete Account</span>
+          </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-              <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+              <AlertDialogDescription>
+                This action cannot be undone. All your posts and comments will be permanently removed from News Nova.
+              </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteUser} className="bg-red-600">Delete</AlertDialogAction>
+              <AlertDialogAction onClick={handleDeleteUser} className="bg-red-600 hover:bg-red-700 text-white font-bold">
+                Yes, Delete My Account
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-        <span onClick={handleSignout}>Sign Out</span>
+        <span onClick={handleSignout} className="text-slate-600 hover:text-red-600 font-bold cursor-pointer transition-colors">Sign Out</span>
       </div>
     </div>
   );
