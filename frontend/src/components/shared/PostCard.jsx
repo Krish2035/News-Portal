@@ -36,57 +36,62 @@ const PostCard = ({ post }) => {
     return url;
   };
 
+  // Helper to calculate reading time
+  const readingTime = post.content 
+    ? Math.ceil(post.content.split(/\s+/).length / 200) // Based on 200 words per minute
+    : 1;
+
   return (
-    <div className="group relative w-full border border-slate-200 rounded-xl bg-white overflow-hidden flex flex-col h-full shadow-sm hover:shadow-md transition-all duration-300">
+    <div className="group relative w-full border border-slate-200 rounded-2xl bg-white overflow-hidden flex flex-col h-full shadow-sm hover:shadow-xl transition-all duration-500">
       
       {/* Category Badge */}
-      <div className="absolute top-3 left-3 z-10">
-        <span className="bg-red-600 text-white text-[10px] font-bold uppercase px-2 py-1 rounded shadow-sm tracking-wider">
+      <div className="absolute top-4 left-4 z-10">
+        <span className="bg-blue-600 text-white text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg shadow-lg tracking-wider group-hover:bg-red-600 transition-colors duration-300">
           {post.category || 'General'}
         </span>
       </div>
 
       {/* Image Container */}
-      <Link to={`/post/${post.slug}`} className="h-[200px] w-full block overflow-hidden bg-slate-100">
+      <Link to={`/post/${post.slug}`} className="h-[220px] w-full block overflow-hidden bg-slate-100">
         <img
           src={getSafeImageUrl(post.image)}
           alt={post.title}
-          className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
+          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700 ease-in-out"
           loading="lazy"
           onError={(e) => {
-            e.target.onerror = null; // Prevents infinite loops
+            e.target.onerror = null; 
             e.target.src = "https://placehold.co/600x400/e2e8f0/1e293b?text=Image+Not+Found";
           }}
         />
       </Link>
 
       {/* Content Section */}
-      <div className="p-5 flex flex-col flex-1 justify-between gap-4">
+      <div className="p-6 flex flex-col flex-1 justify-between gap-4">
         <div>
           <Link to={`/post/${post.slug}`}>
-            <h3 className="text-lg font-bold line-clamp-2 text-slate-900 leading-snug group-hover:text-red-600 transition-colors">
+            <h3 className="text-xl font-bold line-clamp-2 text-slate-900 leading-tight group-hover:text-blue-600 transition-colors duration-300">
               {post.title}
             </h3>
           </Link>
           
-          <div className="flex justify-between items-center text-[11px] text-slate-500 font-semibold mt-3">
-            <span className="bg-slate-100 px-2 py-0.5 rounded">
-              {new Date(post.createdAt).toLocaleDateString(undefined, { 
-                year: 'numeric', 
+          <div className="flex justify-between items-center text-[12px] text-slate-500 font-semibold mt-4">
+            <span className="bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md">
+              {new Date(post.createdAt).toLocaleDateString('en-US', { 
                 month: 'short', 
-                day: 'numeric' 
+                day: 'numeric',
+                year: 'numeric' 
               })}
             </span>
-            <span className="flex items-center gap-1">
-              <span className="w-1 h-1 bg-slate-400 rounded-full"></span>
-              {post.content ? `${Math.ceil(post.content.length / 1000)} min read` : 'Quick Read'}
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
+              {readingTime} min read
             </span>
           </div>
         </div>
         
         <Link 
           to={`/post/${post.slug}`}
-          className="w-full border-2 border-slate-900 text-slate-900 font-bold py-2 rounded-lg text-sm text-center group-hover:bg-slate-900 group-hover:text-white transition-all active:scale-95"
+          className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-sm text-center hover:bg-blue-600 shadow-md hover:shadow-blue-200 transition-all active:scale-95 mt-2"
         >
           Read Full Story
         </Link>

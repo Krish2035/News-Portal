@@ -13,7 +13,7 @@ import {
 import { getFileView, uploadFile } from "@/lib/appwrite/uploadImage";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import apiRequest from "@/utils/api"; // Added central utility
+import apiRequest from "@/utils/api"; 
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,9 +39,7 @@ const DashboardProfile = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        return toast.error("File is too large (Max 2MB)");
-      }
+      if (file.size > 2 * 1024 * 1024) return toast.error("File is too large (Max 2MB)");
       setImageFile(file);
       setImageFileUrl(URL.createObjectURL(file));
     }
@@ -57,7 +55,6 @@ const DashboardProfile = () => {
       const uploadedFile = await uploadFile(imageFile);
       const fileUrlObject = getFileView(uploadedFile.$id);
       let profilePictureUrl = fileUrlObject.href || fileUrlObject.toString();
-
       if (profilePictureUrl.includes('/preview')) {
         profilePictureUrl = profilePictureUrl.replace('/preview', '/view');
       }
@@ -77,14 +74,11 @@ const DashboardProfile = () => {
     try {
       dispatch(updateStart());
       let profilePicture = currentUser.profilePicture;
-      if (imageFile) {
-        profilePicture = await uploadImage();
-      }
+      if (imageFile) profilePicture = await uploadImage();
 
       const updateProfileData = { ...formData };
       if (imageFile) updateProfileData.profilePicture = profilePicture;
 
-      // Refactored to use apiRequest
       const data = await apiRequest(`/api/user/update/${currentUser._id}`, {
         method: "PUT",
         body: updateProfileData,
@@ -103,16 +97,11 @@ const DashboardProfile = () => {
 
   const handleSignout = async () => {
     try {
-      // Refactored to use apiRequest and correct auth route
-      await apiRequest("/api/auth/signout", {
-        method: "POST",
-      });
-      
+      await apiRequest("/api/auth/signout", { method: "POST" });
       dispatch(signOutSuccess());
       navigate("/sign-in");
       toast.success("Signed out successfully");
     } catch (error) {
-      console.error("Signout Error:", error.message);
       toast.error("Signout failed");
     }
   };
@@ -120,12 +109,7 @@ const DashboardProfile = () => {
   const handleDeleteUser = async () => {
     try {
       dispatch(deleteUserStart());
-      
-      // Refactored to use apiRequest
-      const data = await apiRequest(`/api/user/delete/${currentUser._id}`, {
-        method: "DELETE",
-      });
-
+      const data = await apiRequest(`/api/user/delete/${currentUser._id}`, { method: "DELETE" });
       dispatch(deleteUserSuccess(data));
       navigate("/sign-in");
       toast.success("Account deleted successfully");
@@ -137,10 +121,7 @@ const DashboardProfile = () => {
 
   return (
     <div className="max-w-lg mx-auto p-6 w-full bg-white rounded-2xl shadow-sm border border-slate-100 my-10">
-      <h1 className="mb-8 text-center font-extrabold text-3xl text-slate-900 tracking-tight">
-        Profile Settings
-      </h1>
-      
+      <h1 className="mb-8 text-center font-extrabold text-3xl text-slate-900 tracking-tight">Profile Settings</h1>
       <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
         <input type="file" accept="image/*" hidden ref={profilePicRef} onChange={handleImageChange} />
         <div className="relative w-36 h-36 self-center cursor-pointer group">
@@ -149,12 +130,9 @@ const DashboardProfile = () => {
             alt="profile"
             className={`rounded-full w-full h-full object-cover border-4 border-white shadow-lg transition-all duration-300 group-hover:brightness-90 ${loading ? "animate-pulse opacity-50" : ""}`}
             onClick={() => profilePicRef.current.click()}
-            onError={(e) => {
-              e.target.src = `https://ui-avatars.com/api/?name=${currentUser.username}&background=2563eb&color=fff`;
-            }}
+            onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${currentUser.username}&background=2563eb&color=fff`; }}
           />
         </div>
-
         <div className="space-y-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-bold text-slate-700 ml-1">Username</label>
@@ -165,12 +143,10 @@ const DashboardProfile = () => {
             <input type="email" id="email" defaultValue={currentUser.email} className="h-12 border border-slate-200 rounded-xl px-4 focus:ring-2 focus:ring-blue-100 outline-none" onChange={handleChange} />
           </div>
         </div>
-
         <Button type="submit" className="h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl" disabled={loading}>
           {loading ? "Processing..." : "Save Changes"}
         </Button>
       </form>
-
       <div className="flex justify-between mt-8 pt-6 border-t border-slate-100">
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -179,15 +155,11 @@ const DashboardProfile = () => {
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. All your posts and comments will be permanently removed from News Nova.
-              </AlertDialogDescription>
+              <AlertDialogDescription>This action cannot be undone. All your posts and comments will be permanently removed from News Nova.</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteUser} className="bg-red-600 hover:bg-red-700 text-white font-bold">
-                Yes, Delete My Account
-              </AlertDialogAction>
+              <AlertDialogAction onClick={handleDeleteUser} className="bg-red-600 hover:bg-red-700 text-white font-bold">Yes, Delete My Account</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
