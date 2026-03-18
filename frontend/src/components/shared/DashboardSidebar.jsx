@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { signOutSuccess } from "@/redux/user/userSlice";
 import { FaComments, FaUserCircle, FaUsers, FaNewspaper } from "react-icons/fa";
@@ -10,41 +10,36 @@ import { MdDashboardCustomize } from "react-icons/md";
 const DashboardSidebar = () => {
   const dispatch = useDispatch();
   const location = useLocation();
+  const navigate = useNavigate();
   const { currentUser } = useSelector((state) => state.user);
   const [tab, setTab] = useState("");
 
-  // Track the current tab for active styling
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const tabFromUrl = urlParams.get("tab");
-    if (tabFromUrl) {
-      setTab(tabFromUrl);
-    }
+    if (tabFromUrl) setTab(tabFromUrl);
   }, [location.search]);
 
   const handleSignout = async () => {
     try {
-      /**
-       * FULL POWER PRO-TIP: 
-       * Use the relative path. Vite's proxy handles the rest.
-       * This avoids hardcoding Vercel URLs which change between environments.
-       */
       const res = await fetch("/api/user/signout", {
         method: "POST",
+        // PRODUCTION FIX: Required for clearing cookies on Vercel subdomains
+        credentials: "include", 
       });
       const data = await res.json();
 
-      if (!res.ok) {
-        console.error("Signout failed:", data.message);
-      } else {
+      if (res.ok) {
         dispatch(signOutSuccess());
+        navigate("/sign-in");
+      } else {
+        console.error("Signout failed:", data.message);
       }
     } catch (error) {
       console.log("Signout Error:", error);
     }
   };
 
-  // Helper for active link styling
   const activeClass = (currentTab) => 
     `flex items-center p-3 rounded-lg transition-all duration-200 ${
       tab === currentTab 
@@ -71,14 +66,12 @@ const DashboardSidebar = () => {
               </Link>
             </li>
           )}
-          
           <li>
             <Link to="/dashboard?tab=profile" className={activeClass("profile")}>
               <FaUserCircle className="mr-3 text-lg" />
               <span>Profile</span>
             </Link>
           </li>
-
           {currentUser?.isAdmin && (
             <>
               <li>

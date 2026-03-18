@@ -13,7 +13,7 @@ export const signup = async (req, res, next) => {
   try {
     const hashedPassword = await bcryptjs.hash(password, 10);
     const newUser = new User({
-      username,
+      username: username.toLowerCase(),
       email,
       password: hashedPassword,
     });
@@ -41,17 +41,21 @@ export const signin = async (req, res, next) => {
 
     if (!process.env.JWT_SECRET) return next(errorHandler(500, "JWT_SECRET is missing"));
 
-    const token = jwt.sign({ id: validUser._id, isAdmin: validUser.isAdmin }, process.env.JWT_SECRET);
+    const token = jwt.sign(
+      { id: validUser._id, isAdmin: validUser.isAdmin }, 
+      process.env.JWT_SECRET
+    );
 
     const { password: pass, ...rest } = validUser.toObject();
 
     res.status(200)
       .cookie("access_token", token, {
         httpOnly: true,
-        expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
         path: "/",
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
+        // PRODUCTION FIX: 'none' and 'secure' are required for Vercel cross-site cookies
+        sameSite: "none", 
+        secure: true, 
       })
       .json(rest);
   } catch (error) {
@@ -78,7 +82,11 @@ export const google = async (req, res, next) => {
       await user.save();
     }
 
-    const token = jwt.sign({ id: user._id, isAdmin: user.isAdmin }, process.env.JWT_SECRET);
+    const token = jwt.sign(
+      { id: user._id, isAdmin: user.isAdmin }, 
+      process.env.JWT_SECRET
+    );
+    
     const { password: pass, ...rest } = user.toObject();
 
     res.status(200)
@@ -86,8 +94,9 @@ export const google = async (req, res, next) => {
         httpOnly: true,
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
         path: "/",
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
+        // PRODUCTION FIX: 'none' and 'secure' are required for Vercel
+        sameSite: "none",
+        secure: true,
       })
       .json(rest);
   } catch (error) {

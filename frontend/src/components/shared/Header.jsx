@@ -51,13 +51,21 @@ const Header = () => {
     try {
       const res = await fetch("/api/user/signout", {
         method: "POST",
+        /** * PRODUCTION FIX: 
+         * Including credentials ensures the cookie is sent to the backend 
+         * so it can be cleared on Vercel's cross-site environment.
+         */
+        credentials: "include", 
       });
+      const data = await res.json();
       if (res.ok) {
         dispatch(signOutSuccess());
         navigate("/sign-in");
+      } else {
+        console.error(data.message);
       }
     } catch (error) {
-      console.error("Signout Error:", error);
+      console.error("Signout Error:", error.message);
     }
   };
 

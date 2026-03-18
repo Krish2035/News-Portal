@@ -21,8 +21,8 @@ export const updateUser = async (req, res, next) => {
   // Handle Username
   if (req.body.username) {
     const username = req.body.username.toLowerCase();
-    if (username.length < 8 || username.length > 20) {
-      return next(errorHandler(400, "Username must be 8-20 characters"));
+    if (username.length < 5 || username.length > 20) {
+      return next(errorHandler(400, "Username must be 5-20 characters"));
     }
     if (username.includes(" ")) {
       return next(errorHandler(400, "Username cannot contain spaces"));
@@ -38,7 +38,7 @@ export const updateUser = async (req, res, next) => {
     updateData.email = req.body.email;
   }
 
-  // Handle Profile Picture (Crucial Fix)
+  // Handle Profile Picture
   if (req.body.profilePicture) {
     updateData.profilePicture = req.body.profilePicture;
   }
@@ -46,7 +46,7 @@ export const updateUser = async (req, res, next) => {
   try {
     const updatedUser = await User.findByIdAndUpdate(
       req.params.userId,
-      { $set: updateData }, // Only sets fields present in updateData
+      { $set: updateData },
       { new: true, runValidators: true }
     );
 
@@ -71,15 +71,25 @@ export const deleteUser = async (req, res, next) => {
   }
 };
 
-export const signout = async (req, res) => {
-  res.clearCookie("access_token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      path: "/"
-    })
-    .status(200)
-    .json("User has been logged out successfully!");
+/**
+ * PRODUCTION READY SIGNOUT
+ * For Vercel, secure must be true and sameSite must be 'none' 
+ * to allow cross-origin cookie clearing.
+ */
+export const signout = async (req, res, next) => {
+  try {
+    res
+      .clearCookie("access_token", {
+        httpOnly: true,
+        secure: true, // Always true for HTTPS (Vercel)
+        sameSite: "none", // Required for cross-site cookie handling
+        path: "/",
+      })
+      .status(200)
+      .json("User has been logged out successfully!");
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const getUsers = async (req, res, next) => {
@@ -100,10 +110,18 @@ export const getUsers = async (req, res, next) => {
     });
 
     const totalUsers = await User.countDocuments();
-    const oneMonthAgo = new Date(new Date().setMonth(new Date().getMonth() - 1));
-    const lastMonthUsers = await User.countDocuments({ createdAt: { $gte: oneMonthAgo } });
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    
+    const lastMonthUsers = await User.countDocuments({ 
+      createdAt: { $gte: oneMonthAgo } 
+    });
 
-    res.status(200).json({ users: usersWithoutPassword, totalUsers, lastMonthUsers });
+    res.status(200).json({ 
+      users: usersWithoutPassword, 
+      totalUsers, 
+      lastMonthUsers 
+    });
   } catch (error) {
     next(error);
   }
