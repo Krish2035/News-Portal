@@ -22,7 +22,6 @@ const Comment = ({ comment, onLike, onEdit, onDelete }) => {
   const [editedContent, setEditedContent] = useState(comment.content);
   const { currentUser } = useSelector((state) => state.user);
 
-  // FIX: Helper to handle Appwrite 403 transformation error for commenter avatars
   const getSafeImageUrl = (url) => {
     if (!url) return "https://cdn-icons-png.flaticon.com/128/149/149071.png";
     if (url.includes('appwrite.io')) {
@@ -41,31 +40,20 @@ const Comment = ({ comment, onLike, onEdit, onDelete }) => {
       try {
         const res = await fetch(`/api/user/${comment.userId}`);
         const data = await res.json();
-        if (res.ok) {
-          setUser(data);
-        }
+        if (res.ok) setUser(data);
       } catch (error) {
-        console.log(error.message);
+        console.error(error.message);
       }
     };
     getUser();
   }, [comment]);
 
-  const handleEdit = () => {
-    setIsEditing(true);
-    setEditedContent(comment.content);
-  };
-
   const handleSave = async () => {
     try {
       const res = await fetch(`/api/comment/editComment/${comment._id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          content: editedContent,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: editedContent }),
       });
 
       if (res.ok) {
@@ -73,7 +61,7 @@ const Comment = ({ comment, onLike, onEdit, onDelete }) => {
         onEdit(comment, editedContent);
       }
     } catch (error) {
-      console.log(error.message);
+      console.error(error.message);
     }
   };
 
@@ -90,7 +78,7 @@ const Comment = ({ comment, onLike, onEdit, onDelete }) => {
       <div className="flex-1">
         <div className="flex items-center mb-1 gap-2">
           <span className="font-bold text-slate-800 truncate">
-            {user ? `@${user.username}` : "Anonymous"}
+            {user.username ? `@${user.username}` : "Anonymous"}
           </span>
           <span className="text-slate-400 text-xs">
             {moment(comment.createdAt).fromNow()}
@@ -105,82 +93,41 @@ const Comment = ({ comment, onLike, onEdit, onDelete }) => {
               onChange={(e) => setEditedContent(e.target.value)}
             />
             <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                size="sm"
-                className="bg-blue-600 hover:bg-blue-700"
-                onClick={handleSave}
-              >
-                Save Changes
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="text-slate-600"
-                onClick={() => setIsEditing(false)}
-              >
-                Cancel
-              </Button>
+              <Button size="sm" className="bg-blue-600" onClick={handleSave}>Save</Button>
+              <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
             </div>
           </div>
         ) : (
           <>
             <p className="text-slate-700 leading-relaxed py-1">{comment.content}</p>
-
             <div className="flex items-center pt-3 mt-1 gap-4">
-              {/* Like Button */}
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => onLike(comment._id)}
-                  className={`transition-colors ${
-                    currentUser && comment.likes.includes(currentUser._id)
-                      ? "text-blue-600"
-                      : "text-slate-400 hover:text-blue-500"
-                  }`}
-                >
-                  <AiFillLike className="text-lg" />
-                </button>
-                {comment.numberOfLikes > 0 && (
-                  <span className="text-slate-400 text-xs font-medium">
-                    {comment.numberOfLikes} {comment.numberOfLikes === 1 ? "like" : "likes"}
-                  </span>
-                )}
-              </div>
-
-              {/* Action Buttons (Edit/Delete) */}
+              <button
+                type="button"
+                onClick={() => onLike(comment._id)}
+                className={currentUser && comment.likes.includes(currentUser._id) ? "text-blue-600" : "text-slate-400"}
+              >
+                <AiFillLike className="text-lg" />
+              </button>
+              {comment.numberOfLikes > 0 && (
+                <span className="text-slate-400 text-xs">
+                  {comment.numberOfLikes} {comment.numberOfLikes === 1 ? "like" : "likes"}
+                </span>
+              )}
               {currentUser && (currentUser._id === comment.userId || currentUser.isAdmin) && (
-                <div className="flex items-center gap-3 ml-2 border-l border-slate-200 pl-4">
-                  <button
-                    type="button"
-                    onClick={handleEdit}
-                    className="text-slate-400 hover:text-blue-600 transition-colors text-xs font-semibold uppercase tracking-wider"
-                  >
-                    Edit
-                  </button>
-
+                <div className="flex gap-3 ml-2 border-l border-slate-200 pl-4">
+                  <button onClick={() => setIsEditing(true)} className="text-slate-400 hover:text-blue-600 text-xs font-semibold uppercase">Edit</button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <button className="text-slate-400 hover:text-red-600 transition-colors text-xs font-semibold uppercase tracking-wider">
-                        Delete
-                      </button>
+                      <button className="text-slate-400 hover:text-red-600 text-xs font-semibold uppercase">Delete</button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Remove this comment?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action is permanent and cannot be undone.
-                        </AlertDialogDescription>
+                        <AlertDialogTitle>Remove comment?</AlertDialogTitle>
+                        <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Keep it</AlertDialogCancel>
-                        <AlertDialogAction 
-                          className="bg-red-600 hover:bg-red-700" 
-                          onClick={() => onDelete(comment._id)}
-                        >
-                          Delete Permanently
-                        </AlertDialogAction>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction className="bg-red-600" onClick={() => onDelete(comment._id)}>Delete</AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>

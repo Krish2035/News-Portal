@@ -11,6 +11,9 @@ const GoogleAuth = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  // Define the Base URL
+  const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
+
   const handleGoogleClick = async () => {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: "select_account" });
@@ -18,10 +21,10 @@ const GoogleAuth = () => {
     try {
       const firebaseResponse = await signInWithPopup(auth, provider);
 
-      const res = await fetch("/api/auth/google", {
+      // UPDATED: Added backendBase to the fetch call
+      const res = await fetch(`${backendBase}/api/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // CRITICAL FIX: Allows the browser to save the cookie returned by your backend
         credentials: "include",
         body: JSON.stringify({
           name: firebaseResponse.user.displayName,
@@ -30,14 +33,18 @@ const GoogleAuth = () => {
         }),
       });
 
-      const data = await res.json();
-
-      if (res.ok) {
-        dispatch(signInSuccess(data));
-        navigate("/");
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const data = await res.json();
+        if (res.ok) {
+          dispatch(signInSuccess(data));
+          navigate("/");
+        }
+      } else {
+        console.error("Server did not return JSON");
       }
     } catch (error) {
-      console.log(error);
+      console.error("Google Auth Error:", error);
     }
   };
 
@@ -45,7 +52,7 @@ const GoogleAuth = () => {
     <div>
       <Button
         type="button"
-        className="bg-green-500 w-full py-3 rounded-2xl text-white pt-6 pb-6"
+        className="bg-green-500 w-full py-3 rounded-2xl text-white pt-6 pb-6 hover:bg-green-600"
         onClick={handleGoogleClick}
       >
         Continue With Google

@@ -24,6 +24,9 @@ const SignUpForm = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
 
+  // Define the Base URL for the API
+  const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
+
   const {
     register,
     handleSubmit,
@@ -42,33 +45,45 @@ const SignUpForm = () => {
       setLoading(true);
       setErrorMessage(null);
 
-      const res = await fetch("/api/auth/signup", {
+      // UPDATED: Added backendBase to the fetch call
+      const res = await fetch(`${backendBase}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
       });
 
-      const data = await res.json();
+      // Safety check to ensure we received JSON before parsing
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const data = await res.json();
 
-      if (!res.ok) {
-        // Handling duplicate key error from MongoDB (E11000)
-        const friendlyMessage = data.message?.includes("E11000")
-          ? "Username or Email already exists."
-          : data.message || "Sign up failed!";
+        if (!res.ok) {
+          // Handling duplicate key error from MongoDB (E11000)
+          const friendlyMessage = data.message?.includes("E11000")
+            ? "Username or Email already exists."
+            : data.message || "Sign up failed!";
 
-        setErrorMessage(friendlyMessage);
-        toast.error(friendlyMessage);
+          setErrorMessage(friendlyMessage);
+          toast.error(friendlyMessage);
+          setLoading(false);
+          return;
+        }
+
+        // Success Logic
+        toast.success("Sign up Successful!");
         setLoading(false);
-        return;
+        navigate("/sign-in");
+      } else {
+        // Handle case where server returns HTML instead of JSON
+        const errorText = await res.text();
+        console.error("Non-JSON response received:", errorText);
+        setErrorMessage("Server configuration error. Received HTML instead of JSON.");
+        toast.error("Something went wrong on the server.");
+        setLoading(false);
       }
-
-      // Success Logic
-      toast.success("Sign up Successful!");
-      setLoading(false);
-      navigate("/sign-in");
     } catch (err) {
       setErrorMessage("Unable to connect to the server.");
-      toast.error("Something went wrong!");
+      toast.error("Network error. Please check your connection.");
       setLoading(false);
       console.log(err);
     }
@@ -78,13 +93,12 @@ const SignUpForm = () => {
     <div className="min-h-screen mt-20">
       <div className="flex p-3 max-w-3xl sm:max-w-5xl mx-auto flex-col md:flex-row md:items-center gap-5">
         
-        {/* Left Section: Branding & Rebranding to News Nova */}
+        {/* Left Section: Branding */}
         <div className="flex-1">
           <Link
             to={"/"}
             className="font-bold text-2xl sm:text-4xl flex flex-wrap"
           >
-            {/* Consistent branding colors for News Nova */}
             <span className="text-blue-700">News</span>
             <span className="text-red-600 ml-1">Nova</span>
           </Link>

@@ -25,6 +25,9 @@ const Search = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Define the Base URL for the API
+  const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
+
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const searchTermFromUrl = urlParams.get("searchTerm");
@@ -41,21 +44,29 @@ const Search = () => {
     }
 
     const fetchPosts = async () => {
-      setLoading(true);
-      const searchQuery = urlParams.toString();
-      const res = await fetch(`/api/post/getposts?${searchQuery}`);
+      try {
+        setLoading(true);
+        const searchQuery = urlParams.toString();
+        
+        // UPDATED: Added backendBase to the fetch call
+        const res = await fetch(`${backendBase}/api/post/getposts?${searchQuery}`);
 
-      if (res.ok) {
-        const data = await res.json();
-        setPosts(data.posts);
+        if (res.ok) {
+          const data = await res.json();
+          setPosts(data.posts);
+          setLoading(false);
+          setShowMore(data.posts.length === 9);
+        } else {
+          setLoading(false);
+          console.error("Failed to fetch posts");
+        }
+      } catch (error) {
         setLoading(false);
-        setShowMore(data.posts.length === 9);
-      } else {
-        setLoading(false);
+        console.error("Error fetching posts:", error);
       }
     };
     fetchPosts();
-  }, [location.search]);
+  }, [location.search, backendBase]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -70,11 +81,17 @@ const Search = () => {
     const startIndex = posts.length;
     const urlParams = new URLSearchParams(location.search);
     urlParams.set("startIndex", startIndex);
-    const res = await fetch(`/api/post/getposts?${urlParams.toString()}`);
-    if (res.ok) {
-      const data = await res.json();
-      setPosts([...posts, ...data.posts]);
-      setShowMore(data.posts.length === 9);
+    
+    try {
+      // UPDATED: Added backendBase to the fetch call
+      const res = await fetch(`${backendBase}/api/post/getposts?${urlParams.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPosts([...posts, ...data.posts]);
+        setShowMore(data.posts.length === 9);
+      }
+    } catch (error) {
+      console.error("Error loading more posts:", error);
     }
   };
 
@@ -137,7 +154,6 @@ const Search = () => {
           News Articles:
         </h1>
         
-        {/* GRID CONTAINER: This forces the horizontal alignment */}
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
           {loading && <p className="text-xl text-gray-500 animate-pulse col-span-full">Loading...</p>}
           {!loading && posts.length === 0 && <p className="text-xl text-gray-500 col-span-full">No posts found.</p>}

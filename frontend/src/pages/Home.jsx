@@ -12,7 +12,6 @@ const Home = () => {
         setLoading(true);
         // 🚨 FALLBACK: If VITE_API_URL is not set in .env, use your absolute Backend URL
         const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
-        
         const res = await fetch(`${backendBase}/api/post/getposts?limit=9`);
 
         // Check if the response is valid JSON before parsing to avoid "Unexpected token T"

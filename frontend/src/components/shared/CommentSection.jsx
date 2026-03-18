@@ -9,10 +9,10 @@ import Comment from "./Comment";
 const CommentSection = ({ postId }) => {
   const { currentUser } = useSelector((state) => state.user);
   const [comment, setComment] = useState("");
-  const navigate = useNavigate();
   const [allComments, setAllComments] = useState([]);
+  const navigate = useNavigate();
 
-  // FIX: Appwrite 403 error bypass for comment section avatars
+  // Appwrite 403 error bypass for comment section avatars
   const getSafeImageUrl = (url) => {
     if (!url) return null;
     if (url.includes('appwrite.io')) {
@@ -35,7 +35,7 @@ const CommentSection = ({ postId }) => {
           setAllComments(data);
         }
       } catch (error) {
-        console.log("Error fetching comments:", error);
+        console.error("Error fetching comments:", error);
       }
     };
     getComments();
@@ -68,7 +68,6 @@ const CommentSection = ({ postId }) => {
         toast.error(data.message || "Failed to post comment");
       }
     } catch (error) {
-      console.log(error);
       toast.error("Something went wrong!");
     }
   };
@@ -98,7 +97,7 @@ const CommentSection = ({ postId }) => {
         );
       }
     } catch (error) {
-      console.log(error.message);
+      console.error(error.message);
     }
   };
 
@@ -121,13 +120,11 @@ const CommentSection = ({ postId }) => {
       });
 
       if (res.ok) {
-        setAllComments(
-          allComments.filter((comment) => comment._id !== commentId),
-        );
+        setAllComments(allComments.filter((c) => c._id !== commentId));
         toast.success("Comment deleted");
       }
     } catch (error) {
-      console.log(error.message);
+      console.error(error.message);
     }
   };
 
@@ -138,7 +135,7 @@ const CommentSection = ({ postId }) => {
           <p>Signed in as:</p>
           <img
             src={getSafeImageUrl(currentUser.profilePicture)}
-            alt="Profile pic"
+            alt="Profile"
             className="h-6 w-6 object-cover rounded-full border border-slate-200"
             onError={(e) => { e.target.style.display = 'none'; }}
           />
@@ -159,25 +156,17 @@ const CommentSection = ({ postId }) => {
       )}
 
       {currentUser && (
-        <form
-          className="border border-slate-300 rounded-lg p-4 bg-white shadow-sm"
-          onSubmit={handleSubmit}
-        >
+        <form className="border border-slate-300 rounded-lg p-4 bg-white shadow-sm" onSubmit={handleSubmit}>
           <Textarea
             placeholder="Add a comment..."
-            className="border-slate-200 focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0 min-h-[100px]"
+            className="border-slate-200 focus-visible:ring-1 focus-visible:ring-blue-500 min-h-[100px]"
             onChange={(e) => setComment(e.target.value)}
             value={comment}
             maxLength="200"
           />
           <div className="flex justify-between items-center mt-5">
-            <p className="text-slate-400 text-xs italic">
-              {200 - comment.length} characters remaining
-            </p>
-            <Button 
-              type="submit" 
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 font-semibold"
-            >
+            <p className="text-slate-400 text-xs italic">{200 - comment.length} characters remaining</p>
+            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 font-semibold">
               Post Comment
             </Button>
           </div>

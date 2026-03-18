@@ -22,6 +22,9 @@ const SignInForm = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  // Define the Base URL (Fallback to your Render/Vercel backend URL)
+  const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
+
   const { loading, error } = useSelector((state) => state.user);
 
   const {
@@ -36,29 +39,40 @@ const SignInForm = () => {
     try {
       dispatch(signInStart());
 
-      const res = await fetch("/api/auth/signin", {
+      // UPDATED: Use backendBase to avoid hitting the frontend Vercel URL
+      const res = await fetch(`${backendBase}/api/auth/signin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
-        // CRITICAL FIX: This allows the browser to save the cookie sent by the server
+        // This allows the browser to save the cookie sent by the server
         credentials: "include",
       });
 
-      const data = await res.json();
+      // Safely check if response is JSON to avoid "Unexpected token T"
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const data = await res.json();
 
-      if (!res.ok) {
-        dispatch(signInFailure(data.message));
-        toast.error(data.message || "Sign in failed!");
-        return;
+        if (!res.ok) {
+          dispatch(signInFailure(data.message));
+          toast.error(data.message || "Sign in failed!");
+          return;
+        }
+
+        // Success logic
+        dispatch(signInSuccess(data));
+        toast.success("Sign in Successful!");
+        navigate("/");
+      } else {
+        // Handle case where server returns HTML error page
+        const errorText = await res.text();
+        console.error("Non-JSON response received:", errorText);
+        dispatch(signInFailure("Server error: Received HTML instead of JSON"));
+        toast.error("Server configuration error. Please try again later.");
       }
-
-      // Success logic
-      dispatch(signInSuccess(data));
-      toast.success("Sign in Successful!");
-      navigate("/");
     } catch (err) {
       dispatch(signInFailure(err.message));
-      toast.error("Something went wrong!");
+      toast.error("Network error: Could not reach the server.");
     }
   }
 
@@ -127,7 +141,7 @@ const SignInForm = () => {
             {/* Button */}
             <Button
               type="submit"
-              className="bg-blue-500 py-6 rounded-2xl w-full"
+              className="bg-blue-500 py-6 rounded-2xl w-full text-white hover:bg-blue-600 transition-colors"
               disabled={loading}
             >
               {loading ? "Loading..." : "Sign In"}
@@ -137,14 +151,16 @@ const SignInForm = () => {
 
             <div className="flex gap-2 text-sm mt-5">
               <span>Don't have an Account?</span>
-              <Link to={"/sign-up"} className="text-blue-500">
+              <Link to={"/sign-up"} className="text-blue-500 hover:underline">
                 Sign Up
               </Link>
             </div>
           </form>
 
           {error && (
-            <p className="text-red-500 text-center text-sm mt-2">{error}</p>
+            <p className="text-red-500 text-center text-sm mt-4 font-semibold bg-red-50 p-2 rounded">
+              {error}
+            </p>
           )}
         </div>
       </div>
