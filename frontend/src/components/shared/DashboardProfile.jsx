@@ -13,6 +13,7 @@ import {
 import { getFileView, uploadFile } from "@/lib/appwrite/uploadImage";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import apiRequest from "@/utils/api"; // Added central utility
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,12 +35,6 @@ const DashboardProfile = () => {
   const [imageFile, setImageFile] = useState(null);
   const [imageFileUrl, setImageFileUrl] = useState(null);
   const [formData, setFormData] = useState({});
-
-  /**
-   * PRODUCTION FIX: Explicit Backend URL.
-   * Based on your screenshots, this is your live backend domain.
-   */
-  const API_BASE_URL = "https://news-portal-7g52.vercel.app";
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -89,71 +84,54 @@ const DashboardProfile = () => {
       const updateProfileData = { ...formData };
       if (imageFile) updateProfileData.profilePicture = profilePicture;
 
-      // FIXED: Use absolute path for production
-      const res = await fetch(`${API_BASE_URL}/api/user/update/${currentUser._id}`, {
+      // Refactored to use apiRequest
+      const data = await apiRequest(`/api/user/update/${currentUser._id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include", 
-        body: JSON.stringify(updateProfileData),
+        body: updateProfileData,
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        dispatch(updateFailure(data.message));
-        toast.error(data.message);
-      } else {
-        dispatch(updateSuccess(data));
-        toast.success("Profile updated successfully!");
-        setImageFile(null);
-        setImageFileUrl(null);
-        setFormData({});
-      }
+      dispatch(updateSuccess(data));
+      toast.success("Profile updated successfully!");
+      setImageFile(null);
+      setImageFileUrl(null);
+      setFormData({});
     } catch (error) {
       dispatch(updateFailure(error.message));
-      toast.error("An unexpected error occurred");
+      toast.error(error.message || "An unexpected error occurred");
     }
   };
 
   const handleSignout = async () => {
     try {
-      // FIXED: Use absolute path for production
-      const res = await fetch(`${API_BASE_URL}/api/user/signout`, {
+      // Refactored to use apiRequest and correct auth route
+      await apiRequest("/api/auth/signout", {
         method: "POST",
-        credentials: "include", 
       });
       
-      if (res.ok) {
-        dispatch(signOutSuccess());
-        navigate("/sign-in");
-        toast.success("Signed out successfully");
-      } else {
-        const data = await res.json();
-        console.error(data.message);
-      }
+      dispatch(signOutSuccess());
+      navigate("/sign-in");
+      toast.success("Signed out successfully");
     } catch (error) {
       console.error("Signout Error:", error.message);
+      toast.error("Signout failed");
     }
   };
 
   const handleDeleteUser = async () => {
     try {
       dispatch(deleteUserStart());
-      // FIXED: Use absolute path for production
-      const res = await fetch(`${API_BASE_URL}/api/user/delete/${currentUser._id}`, {
+      
+      // Refactored to use apiRequest
+      const data = await apiRequest(`/api/user/delete/${currentUser._id}`, {
         method: "DELETE",
-        credentials: "include", 
       });
-      const data = await res.json();
-      if (!res.ok) {
-        dispatch(deleteUserFailure(data.message));
-        toast.error(data.message);
-      } else {
-        dispatch(deleteUserSuccess(data));
-        navigate("/sign-in");
-        toast.success("Account deleted successfully");
-      }
+
+      dispatch(deleteUserSuccess(data));
+      navigate("/sign-in");
+      toast.success("Account deleted successfully");
     } catch (error) {
       dispatch(deleteUserFailure(error.message));
+      toast.error(error.message || "An error occurred during deletion");
     }
   };
 

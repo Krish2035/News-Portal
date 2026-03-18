@@ -6,6 +6,8 @@ import { FaComments, FaUserCircle, FaUsers, FaNewspaper } from "react-icons/fa";
 import { RiLogoutBoxRFill } from "react-icons/ri";
 import { IoIosCreate } from "react-icons/io";
 import { MdDashboardCustomize } from "react-icons/md";
+import apiRequest from "@/utils/api"; // Import your centralized utility
+import { toast } from "sonner";
 
 const DashboardSidebar = () => {
   const dispatch = useDispatch();
@@ -20,23 +22,24 @@ const DashboardSidebar = () => {
     if (tabFromUrl) setTab(tabFromUrl);
   }, [location.search]);
 
+  /**
+   * Refactored handleSignout
+   * Uses the central apiRequest utility for consistency.
+   */
   const handleSignout = async () => {
     try {
-      const res = await fetch("/api/user/signout", {
+      // Points to the correct auth/signout route we defined in the backend
+      await apiRequest("/api/auth/signout", {
         method: "POST",
-        // PRODUCTION FIX: Required for clearing cookies on Vercel subdomains
-        credentials: "include", 
       });
-      const data = await res.json();
 
-      if (res.ok) {
-        dispatch(signOutSuccess());
-        navigate("/sign-in");
-      } else {
-        console.error("Signout failed:", data.message);
-      }
+      // Clear local state and redirect
+      dispatch(signOutSuccess());
+      toast.success("Signed out successfully!");
+      navigate("/sign-in");
     } catch (error) {
-      console.log("Signout Error:", error);
+      console.error("Signout Error:", error.message);
+      toast.error("Failed to sign out. Please try again.");
     }
   };
 

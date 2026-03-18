@@ -3,6 +3,12 @@ import User from "../models/user.model.js";
 import { errorHandler } from "../utils/error.js";
 import jwt from "jsonwebtoken";
 
+/**
+ * Helper to determine if we are in production
+ * This ensures cookies work on both Localhost and Vercel.
+ */
+const isProduction = process.env.NODE_ENV === "production";
+
 export const signup = async (req, res, next) => {
   const { username, email, password } = req.body;
 
@@ -13,7 +19,7 @@ export const signup = async (req, res, next) => {
   try {
     const hashedPassword = await bcryptjs.hash(password, 10);
     const newUser = new User({
-      username: username.toLowerCase(),
+      username: username.toLowerCase().replace(/\s+/g, ""), // Remove spaces for cleaner usernames
       email,
       password: hashedPassword,
     });
@@ -53,9 +59,13 @@ export const signin = async (req, res, next) => {
         httpOnly: true,
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
         path: "/",
-        // PRODUCTION FIX: 'none' and 'secure' are required for Vercel cross-site cookies
-        sameSite: "none", 
-        secure: true, 
+        /**
+         * PRODUCTION FIX: 
+         * For cross-site cookies (Frontend on Vercel A -> Backend on Vercel B),
+         * 'none' and 'secure' are MANDATORY.
+         */
+        sameSite: isProduction ? "none" : "lax", 
+        secure: isProduction, 
       })
       .json(rest);
   } catch (error) {
@@ -71,8 +81,10 @@ export const google = async (req, res, next) => {
     let user = await User.findOne({ email });
 
     if (!user) {
+      // Generate a complex password for the new Google user
       const generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
       const hashedPassword = await bcryptjs.hash(generatedPassword, 10);
+      
       user = new User({
         username: name.toLowerCase().split(" ").join("") + Math.random().toString(9).slice(-4),
         email,
@@ -94,11 +106,26 @@ export const google = async (req, res, next) => {
         httpOnly: true,
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
         path: "/",
-        // PRODUCTION FIX: 'none' and 'secure' are required for Vercel
-        sameSite: "none",
-        secure: true,
+        sameSite: isProduction ? "none" : "lax",
+        secure: isProduction,
       })
       .json(rest);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const signout = (req, res, next) => {
+  try {
+    res
+      .clearCookie("access_token", {
+        path: "/",
+        // These MUST match the settings used when the cookie was created
+        sameSite: isProduction ? "none" : "lax",
+        secure: isProduction,
+      })
+      .status(200)
+      .json({ message: "User has been signed out" });
   } catch (error) {
     next(error);
   }
