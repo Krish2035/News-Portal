@@ -10,10 +10,26 @@ const PostDetails = () => {
   const [post, setPost] = useState(null);
   const [recentPosts, setRecentPosts] = useState(null);
 
+  // 1. Reusing your Image Sanitization Logic from PostCard
+  const getSafeImageUrl = (url) => {
+    if (!url) return "https://placehold.co/1200x600/e2e8f0/1e293b?text=News+Nova";
+    if (url.startsWith("/uploads")) {
+      const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
+      const cleanBase = backendBase.endsWith('/') ? backendBase.slice(0, -1) : backendBase;
+      return `${cleanBase}${url}`;
+    }
+    // Swap 'preview' for 'view' if using Appwrite
+    if (url.includes('appwrite.io')) {
+      return url.replace('/preview', '/view');
+    }
+    return url;
+  };
+
   useEffect(() => {
     const fetchPost = async () => {
       try {
         setLoading(true);
+        // Using the slug from params to fetch specific post
         const res = await fetch(`/api/post/getposts?slug=${postSlug}`);
         const data = await res.json();
         if (!res.ok) {
@@ -21,32 +37,32 @@ const PostDetails = () => {
           setLoading(false);
           return;
         }
-        if (res.ok) {
-          setPost(data.posts[0]);
-          setLoading(false);
-          setError(false);
-        }
+        setPost(data.posts[0]);
+        setLoading(false);
+        setError(false);
       } catch (error) {
         setError(true);
         setLoading(false);
       }
     };
     fetchPost();
+    // Scroll to top whenever the slug changes (important for 'Recent Stories' clicks)
+    window.scrollTo(0, 0);
   }, [postSlug]);
 
   useEffect(() => {
-    try {
-      const fetchRecentPosts = async () => {
+    const fetchRecentPosts = async () => {
+      try {
         const res = await fetch(`/api/post/getposts?limit=3`);
         const data = await res.json();
         if (res.ok) {
           setRecentPosts(data.posts);
         }
-      };
-      fetchRecentPosts();
-    } catch (error) {
-      console.log(error.message);
-    }
+      } catch (error) {
+        console.error("Failed to fetch recent posts:", error.message);
+      }
+    };
+    fetchRecentPosts();
   }, []);
 
   if (loading) {
@@ -57,41 +73,49 @@ const PostDetails = () => {
     );
   }
 
+  if (error || !post) {
+    return (
+      <div className="flex flex-col justify-center items-center min-h-screen gap-4">
+        <h2 className="text-2xl font-bold">Story not found</h2>
+        <Link to="/" className="text-blue-600 hover:underline">Return to Home</Link>
+      </div>
+    );
+  }
+
   return (
-    <main className="p-3 flex flex-col max-w-6xl mx-auto min-h-screen">
+    <main className="p-3 flex flex-col max-w-6xl mx-auto min-h-screen animate-in fade-in duration-500">
       {/* Article Header */}
       <h1 className="text-3xl mt-10 p-3 text-center font-serif max-w-2xl mx-auto lg:text-5xl font-bold text-slate-900 leading-tight">
-        {post && post.title}
+        {post.title}
       </h1>
 
-      <Link
-        to={`/search?category=${post && post.category}`}
-        className="self-center mt-5"
-      >
+      <Link to={`/search?category=${post.category}`} className="self-center mt-5">
         <Button color="gray" pill size="xs" className="bg-slate-100 text-slate-800 hover:bg-red-600 hover:text-white transition-all uppercase text-xs font-bold px-4 py-1 rounded-full">
-          {post && post.category}
+          {post.category || "General"}
         </Button>
       </Link>
 
-      {/* Featured Image */}
+      {/* Featured Image using sanitized URL */}
       <img
-        src={post && post.image}
-        alt={post && post.title}
+        src={getSafeImageUrl(post.image)}
+        alt={post.title}
         className="mt-10 p-3 max-h-[600px] w-full object-cover rounded-3xl shadow-2xl"
       />
 
       {/* Metadata */}
       <div className="flex justify-between p-3 border-b border-slate-300 mx-auto w-full max-w-2xl text-xs sm:text-sm font-semibold text-slate-500 italic">
-        <span>{post && new Date(post.createdAt).toLocaleDateString()}</span>
+        <span>{new Date(post.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
         <span className="text-red-600">
-          {post && (post.content.length / 1000).toFixed(0)} mins read
+          {Math.ceil(post.content.replace(/<[^>]*>/g, '').split(/\s+/).length / 200)} min read
         </span>
       </div>
 
-      {/* Main Content (Rich Text Rendering) */}
+      {/* Change this section in your PostDetails.jsx */}
       <div
-        className="p-3 max-w-3xl mx-auto w-full post-content leading-relaxed text-slate-800"
-        dangerouslySetInnerHTML={{ __html: post && post.content }}
+        className="p-3 max-w-3xl mx-auto w-full post-content 
+             leading-relaxed text-slate-800 
+             break-words" // Prevents long URLs from breaking layout
+        dangerouslySetInnerHTML={{ __html: post.content }}
       ></div>
 
       <hr className="border-slate-200 my-10" />

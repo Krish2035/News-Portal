@@ -1,34 +1,32 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
+/**
+ * PostCard Component
+ * Renders an individual news post with optimized image handling and metadata.
+ */
 const PostCard = ({ post }) => {
+  // 1. Image URL Sanitization Logic
   const getSafeImageUrl = (url) => {
-    // 1. Fallback for empty or undefined URLs
     if (!url) return "https://placehold.co/600x400/e2e8f0/1e293b?text=News+Nova";
 
-    // 2. Handle Local Backend Uploads (for /uploads folder)
+    // Handle local/backend uploads
     if (url.startsWith("/uploads")) {
       const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
-      return `${backendBase}${url}`;
+      // Ensure no double slashes if backendBase ends with /
+      const cleanBase = backendBase.endsWith('/') ? backendBase.slice(0, -1) : backendBase;
+      return `${cleanBase}${url}`;
     }
 
-    // 3. Handle Appwrite URLs specifically
+    // Handle Appwrite specific transformations
     if (url.includes('appwrite.io')) {
       try {
         const urlObj = new URL(url);
-        
-        // Use 'view' instead of 'preview' for full resolution and reliability
-        if (urlObj.pathname.includes('/preview')) {
-          urlObj.pathname = urlObj.pathname.replace('/preview', '/view');
-        }
-        
-        // Use the Project ID from the URL or fallback to Env variable
+        // Swap 'preview' for 'view' to get full resolution
+        const path = urlObj.pathname.replace('/preview', '/view');
         const projectId = urlObj.searchParams.get('project') || import.meta.env.VITE_APPWRITE_PROJECT_ID;
-        
-        // Reconstruct to ensure a clean request
-        return `${urlObj.origin}${urlObj.pathname}?project=${projectId}`;
+        return `${urlObj.origin}${path}?project=${projectId}`;
       } catch (e) {
-        // Fallback for malformed URLs
         return url.replace('/preview', '/view');
       }
     }
@@ -36,13 +34,23 @@ const PostCard = ({ post }) => {
     return url;
   };
 
-  // Helper to calculate reading time
+  // 2. Metadata Calculations
+  // Strips HTML tags before counting words for an accurate reading time
   const readingTime = post.content 
-    ? Math.ceil(post.content.split(/\s+/).length / 200) // Based on 200 words per minute
+    ? Math.ceil(post.content.replace(/<[^>]*>/g, '').split(/\s+/).length / 200) 
     : 1;
 
+  // Formats date safely to prevent crashes on invalid strings
+  const formattedDate = post.createdAt 
+    ? new Date(post.createdAt).toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      })
+    : "Recently";
+
   return (
-    <div className="group relative w-full border border-slate-200 rounded-2xl bg-white overflow-hidden flex flex-col h-full shadow-sm hover:shadow-xl transition-all duration-500">
+    <div className="group relative w-full border border-slate-300 rounded-2xl bg-white overflow-hidden flex flex-col h-full shadow-sm hover:shadow-xl transition-all duration-500">
       
       {/* Category Badge */}
       <div className="absolute top-4 left-4 z-10">
@@ -52,10 +60,10 @@ const PostCard = ({ post }) => {
       </div>
 
       {/* Image Container */}
-      <Link to={`/post/${post.slug}`} className="h-[220px] w-full block overflow-hidden bg-slate-100">
+      <Link to={`/post/${post.slug}`} className="h-[220px] w-full block overflow-hidden bg-slate-200">
         <img
           src={getSafeImageUrl(post.image)}
-          alt={post.title}
+          alt={post.title || "News Story"}
           className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700 ease-in-out"
           loading="lazy"
           onError={(e) => {
@@ -74,15 +82,11 @@ const PostCard = ({ post }) => {
             </h3>
           </Link>
           
-          <div className="flex justify-between items-center text-[12px] text-slate-500 font-semibold mt-4">
-            <span className="bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md">
-              {new Date(post.createdAt).toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric',
-                year: 'numeric' 
-              })}
+          <div className="flex justify-between items-center text-[12px] text-slate-600 font-bold mt-4">
+            <span className="bg-slate-100 border border-slate-300 px-2 py-1 rounded-md">
+              {formattedDate}
             </span>
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5 text-slate-500">
               <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
               {readingTime} min read
             </span>
@@ -99,5 +103,26 @@ const PostCard = ({ post }) => {
     </div>
   );
 };
+
+/**
+ * Loading Placeholder (Skeleton)
+ * Use this in your parent component while fetching data.
+ */
+export const PostCardSkeleton = () => (
+  <div className="w-full border border-slate-200 rounded-2xl bg-white overflow-hidden flex flex-col h-full animate-pulse">
+    <div className="h-[220px] w-full bg-slate-200" />
+    <div className="p-6 flex flex-col flex-1 justify-between gap-4">
+      <div>
+        <div className="h-6 bg-slate-200 rounded-md w-3/4 mb-2" />
+        <div className="h-6 bg-slate-200 rounded-md w-1/2" />
+        <div className="flex justify-between items-center mt-6">
+          <div className="h-6 bg-slate-100 rounded-md w-24" />
+          <div className="h-4 bg-slate-100 rounded-md w-16" />
+        </div>
+      </div>
+      <div className="h-12 bg-slate-200 rounded-xl w-full mt-2" />
+    </div>
+  </div>
+);
 
 export default PostCard;
