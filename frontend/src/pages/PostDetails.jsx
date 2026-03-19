@@ -111,10 +111,12 @@ const PostDetails = () => {
       </div>
 
       {/* Change this section in your PostDetails.jsx */}
+      {/* Main Content */}
+      {/* Updated Main Content Div */}
       <div
         className="p-3 max-w-3xl mx-auto w-full post-content 
              leading-relaxed text-slate-800 
-             break-words" // Prevents long URLs from breaking layout
+             break-normal" // Use break-normal instead of break-words
         dangerouslySetInnerHTML={{ __html: post.content }}
       ></div>
 
