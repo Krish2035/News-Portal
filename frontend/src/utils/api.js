@@ -1,5 +1,5 @@
-// frontend/src/utils/api.js
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://news-portal-7g52.vercel.app";
+// Matches the variable name in your .env file
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
 
 const apiRequest = async (endpoint, options = {}) => {
   const { method = "GET", body = null, headers = {} } = options;
@@ -14,21 +14,27 @@ const apiRequest = async (endpoint, options = {}) => {
       "Content-Type": "application/json",
       ...headers,
     },
-    credentials: "include", // Required for cross-origin cookies/auth
+    // Essential for keeping users logged in across domains (Vercel Frontend -> Vercel Backend)
+    credentials: "include", 
   };
 
   if (body) {
     fetchOptions.body = JSON.stringify(body);
   }
 
-  const response = await fetch(url, fetchOptions);
-  const data = await response.json();
+  try {
+    const response = await fetch(url, fetchOptions);
+    const data = await response.json();
 
-  if (!response.ok) {
-    throw new Error(data.message || "Something went wrong");
+    if (!response.ok) {
+      throw new Error(data.message || "Something went wrong");
+    }
+
+    return data;
+  } catch (error) {
+    console.error("API Request Error:", error.message);
+    throw error;
   }
-
-  return data;
 };
 
 export default apiRequest;

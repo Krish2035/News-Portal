@@ -1,9 +1,12 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration
+/**
+ * Firebase Configuration for News Nova
+ * The API Key is kept private using Vite environment variables.
+ * For production (Vercel), ensure VITE_FIREBASE_API_KEY is added to 
+ * the project environment settings.
+ */
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "news-portal-40d08.firebaseapp.com",

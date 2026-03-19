@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { Button } from "../ui/button";
-import { getAuth, GoogleAuthProvider, signInWithPopup } from "@firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth"; // Standardized import
 import { app } from "@/firebase";
 import { useDispatch } from "react-redux";
 import { signInSuccess, signInFailure } from "@/redux/user/userSlice";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import apiRequest from "@/utils/api"; // Import your new central utility
+import apiRequest from "@/utils/api"; 
 
 const GoogleAuth = () => {
   const auth = getAuth(app);
@@ -16,13 +16,18 @@ const GoogleAuth = () => {
 
   const handleGoogleClick = async () => {
     const provider = new GoogleAuthProvider();
+    // Forces the account selection screen every time
     provider.setCustomParameters({ prompt: "select_account" });
 
     try {
       setLoading(true);
       const firebaseResponse = await signInWithPopup(auth, provider);
 
-      // Using apiRequest to handle headers, credentials, and URL
+      /**
+       * Send Firebase data to News Nova Backend.
+       * The 'profilePhotoUrl' key here matches the expected field 
+       * in your backend auth.controller.js.
+       */
       const data = await apiRequest("/api/auth/google", {
         method: "POST",
         body: {
@@ -33,13 +38,14 @@ const GoogleAuth = () => {
       });
 
       dispatch(signInSuccess(data));
-      toast.success("Google Sign-in successful!");
+      toast.success("Welcome to News Nova!");
       navigate("/");
     } catch (error) {
-      // Catching errors from either Firebase or our Backend
       console.error("Google Auth Error:", error);
-      dispatch(signInFailure(error.message));
-      toast.error(error.message || "Could not complete Google Sign-in.");
+      // Handles both Firebase cancelation and Backend errors
+      const errorMessage = error.message || "Could not complete Google Sign-in.";
+      dispatch(signInFailure(errorMessage));
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -4,23 +4,25 @@ import { errorHandler } from "../utils/error.js";
 import jwt from "jsonwebtoken";
 
 /**
- * Helper to determine if we are in production
- * This ensures cookies work on both Localhost and Vercel.
+ * PRODUCTION FIX: 
+ * Vercel and other platforms set NODE_ENV to production automatically.
+ * We use this to ensure cookies work across different domains.
  */
 const isProduction = process.env.NODE_ENV === "production";
 
 export const signup = async (req, res, next) => {
   const { username, email, password } = req.body;
 
-  if (!username || !email || !password || username.trim() === "" || email.trim() === "" || password.trim() === "") {
+  if (!username || !email || !password || !username.trim() || !email.trim() || !password.trim()) {
     return next(errorHandler(400, "All fields are required"));
   }
 
   try {
     const hashedPassword = await bcryptjs.hash(password, 10);
     const newUser = new User({
-      username: username.toLowerCase().replace(/\s+/g, ""), // Remove spaces for cleaner usernames
-      email,
+      // Sanitize username: lowercase and no spaces
+      username: username.toLowerCase().replace(/\s+/g, ""), 
+      email: email.toLowerCase(),
       password: hashedPassword,
     });
 
@@ -34,18 +36,18 @@ export const signup = async (req, res, next) => {
 export const signin = async (req, res, next) => {
   const { email, password } = req.body;
 
-  if (!email || !password || email.trim() === "" || password.trim() === "") {
+  if (!email || !password || !email.trim() || !password.trim()) {
     return next(errorHandler(400, "All fields are required"));
   }
 
   try {
-    const validUser = await User.findOne({ email });
+    const validUser = await User.findOne({ email: email.toLowerCase() });
     if (!validUser) return next(errorHandler(404, "User not found"));
 
     const validPassword = await bcryptjs.compare(password, validUser.password);
-    if (!validPassword) return next(errorHandler(400, "Wrong Credentials"));
+    if (!validPassword) return next(errorHandler(400, "Invalid credentials"));
 
-    if (!process.env.JWT_SECRET) return next(errorHandler(500, "JWT_SECRET is missing"));
+    if (!process.env.JWT_SECRET) return next(errorHandler(500, "Server configuration error: JWT_SECRET missing"));
 
     const token = jwt.sign(
       { id: validUser._id, isAdmin: validUser.isAdmin }, 
@@ -59,11 +61,7 @@ export const signin = async (req, res, next) => {
         httpOnly: true,
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
         path: "/",
-        /**
-         * PRODUCTION FIX: 
-         * For cross-site cookies (Frontend on Vercel A -> Backend on Vercel B),
-         * 'none' and 'secure' are MANDATORY.
-         */
+        // CRITICAL: Cross-site cookie settings for Vercel
         sameSite: isProduction ? "none" : "lax", 
         secure: isProduction, 
       })
@@ -78,18 +76,19 @@ export const google = async (req, res, next) => {
   try {
     if (!process.env.JWT_SECRET) return next(errorHandler(500, "JWT_SECRET is missing"));
 
-    let user = await User.findOne({ email });
+    let user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
-      // Generate a complex password for the new Google user
+      // Create secure random password for Google users
       const generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
       const hashedPassword = await bcryptjs.hash(generatedPassword, 10);
       
       user = new User({
         username: name.toLowerCase().split(" ").join("") + Math.random().toString(9).slice(-4),
-        email,
+        email: email.toLowerCase(),
         password: hashedPassword,
-        profilePicture: profilePhotoUrl,
+        // Match this field name to your User Schema (usually profilePicture)
+        profilePicture: profilePhotoUrl, 
       });
       await user.save();
     }
@@ -120,7 +119,6 @@ export const signout = (req, res, next) => {
     res
       .clearCookie("access_token", {
         path: "/",
-        // These MUST match the settings used when the cookie was created
         sameSite: isProduction ? "none" : "lax",
         secure: isProduction,
       })

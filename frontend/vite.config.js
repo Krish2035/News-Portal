@@ -1,10 +1,13 @@
 import path from "path";
+import { fileURLToPath } from "url";
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-// For Vercel, we use a simpler path resolution that doesn't 
-// always require fileURLToPath in common build scenarios.
+// Standard ESM way to define __dirname for path resolution
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 export default defineConfig({
   plugins: [
     react(), 
@@ -12,8 +15,12 @@ export default defineConfig({
   ],
   server: {
     proxy: {
+      /**
+       * LOCAL DEVELOPMENT PROXY
+       * Redirects frontend /api calls to your local backend during development.
+       * In production (Vercel), your apiRequest utility handles the full URL.
+       */
       '/api': {
-        // This remains for local development
         target: 'http://localhost:3000',
         changeOrigin: true,
         secure: false,
@@ -22,13 +29,17 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      // Direct path resolution for the "@" alias
-      "@": path.resolve(new URL('.', import.meta.url).pathname, "./src"),
+      /**
+       * The "@" alias allows you to use absolute imports.
+       * Example: import apiRequest from "@/utils/api";
+       */
+      "@": path.resolve(__dirname, "./src"),
     },
   },
   build: {
-    // Ensures Vite looks for index.html in the correct root
     outDir: 'dist',
     emptyOutDir: true,
+    // Ensures source maps are handled correctly for easier debugging
+    sourcemap: false, 
   }
 });

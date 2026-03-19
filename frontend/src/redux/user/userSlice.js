@@ -10,7 +10,7 @@ const userSlice = createSlice({
   name: "user",
   initialState,
   reducers: {
-    // Sign In Reducers
+    // Auth Actions
     signInStart: (state) => {
       state.loading = true;
       state.error = null;
@@ -25,7 +25,7 @@ const userSlice = createSlice({
       state.error = action.payload;
     },
 
-    // Update Profile Reducers
+    // Profile Actions
     updateStart: (state) => {
       state.loading = true;
       state.error = null;
@@ -40,7 +40,7 @@ const userSlice = createSlice({
       state.error = action.payload;
     },
 
-    // Delete User Reducers
+    // Account Deletion
     deleteUserStart: (state) => {
       state.loading = true;
       state.error = null;
@@ -55,7 +55,7 @@ const userSlice = createSlice({
       state.error = action.payload;
     },
 
-    // Sign Out Reducers
+    // Session Management
     signOutStart: (state) => {
       state.loading = true;
       state.error = null;
