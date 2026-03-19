@@ -12,10 +12,14 @@ const DashboardUsers = () => {
   const [showMore, setShowMore] = useState(true);
   const [userIdToDelete, setUserIdToDelete] = useState("");
 
+  // Get the backend URL from .env
+  const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await fetch(`/api/user/getusers`);
+        // UPDATED: Added backendBase
+        const res = await fetch(`${backendBase}/api/user/getusers`);
         const data = await res.json();
         if (res.ok) {
           setUsers(data.users);
@@ -26,12 +30,13 @@ const DashboardUsers = () => {
       }
     };
     if (currentUser?.isAdmin) fetchUsers();
-  }, [currentUser._id, currentUser?.isAdmin]);
+  }, [currentUser._id, currentUser?.isAdmin, backendBase]);
 
   const handleShowMore = async () => {
     const startIndex = users.length;
     try {
-      const res = await fetch(`/api/user/getusers?startIndex=${startIndex}`);
+      // UPDATED: Added backendBase
+      const res = await fetch(`${backendBase}/api/user/getusers?startIndex=${startIndex}`);
       const data = await res.json();
       if (res.ok) {
         setUsers((prev) => [...prev, ...data.users]);
@@ -44,7 +49,10 @@ const DashboardUsers = () => {
 
   const handleDeleteUser = async () => {
     try {
-      const res = await fetch(`/api/user/delete/${userIdToDelete}`, { method: "DELETE" });
+      // UPDATED: Added backendBase
+      const res = await fetch(`${backendBase}/api/user/delete/${userIdToDelete}`, { 
+        method: "DELETE" 
+      });
       if (res.ok) {
         setUsers((prev) => prev.filter((u) => u._id !== userIdToDelete));
         toast.success("User deleted");

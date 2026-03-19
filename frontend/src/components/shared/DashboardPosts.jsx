@@ -12,10 +12,13 @@ const DashboardPosts = () => {
   const [showMore, setShowMore] = useState(true);
   const [postIdToDelete, setPostIdToDelete] = useState("");
 
+  // Get the backend URL from .env
+  const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
+
   const fetchPosts = async () => {
     try {
-      // Relative path utilizes Vite Proxy for clean auth handling
-      const res = await fetch(`/api/post/getposts?userId=${currentUser._id}&startIndex=${userPosts.length}`);
+      // UPDATED: Added backendBase to the fetch URL
+      const res = await fetch(`${backendBase}/api/post/getposts?userId=${currentUser._id}&startIndex=${userPosts.length}`);
       const data = await res.json();
       if (res.ok) {
         setUserPosts((prev) => [...prev, ...data.posts]);
@@ -32,7 +35,8 @@ const DashboardPosts = () => {
 
   const handleDeletePost = async () => {
     try {
-      const res = await fetch(`/api/post/deletepost/${postIdToDelete}/${currentUser._id}`, {
+      // UPDATED: Added backendBase to the delete URL
+      const res = await fetch(`${backendBase}/api/post/deletepost/${postIdToDelete}/${currentUser._id}`, {
         method: "DELETE",
       });
       const data = await res.json();

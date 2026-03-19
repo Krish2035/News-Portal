@@ -26,35 +26,49 @@ const MainDashboard = () => {
 
   const { currentUser } = useSelector((state) => state.user);
 
+  // Get the backend URL from .env
+  const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
+
   useEffect(() => {
-    const fetchData = async (url, setter) => {
+    const fetchData = async (endpoint, setter) => {
       try {
-        const res = await fetch(url, { method: "GET", credentials: "include" });
+        // UPDATED: Using absolute URL to ensure it hits the backend on Vercel
+        const res = await fetch(`${backendBase}${endpoint}`, { 
+          method: "GET", 
+          credentials: "include" 
+        });
         const data = await res.json();
-        if (res.ok) setter(data);
+        if (res.ok) {
+          setter(data);
+        }
       } catch (error) {
-        console.log(error.message);
+        console.log("Dashboard Fetch Error:", error.message);
       }
     };
 
     if (currentUser?.isAdmin) {
+      // Fetch Users
       fetchData("/api/user/getusers?limit=5", (data) => {
-        setUsers(data.users);
-        setTotalUsers(data.totalUsers);
-        setLastMonthUsers(data.lastMonthUsers);
+        setUsers(data.users || []);
+        setTotalUsers(data.totalUsers || 0);
+        setLastMonthUsers(data.lastMonthUsers || 0);
       });
+      
+      // Fetch Posts
       fetchData("/api/post/getposts?limit=5", (data) => {
-        setPosts(data.posts);
-        setTotalPosts(data.totalPosts);
-        setLastMonthPosts(data.lastMonthPosts);
+        setPosts(data.posts || []);
+        setTotalPosts(data.totalPosts || 0);
+        setLastMonthPosts(data.lastMonthPosts || 0);
       });
+      
+      // Fetch Comments
       fetchData("/api/comment/getcomments?limit=5", (data) => {
-        setComments(data.comments);
-        setTotalComments(data.totalComments);
-        setLastMonthComments(data.lastMonthComments);
+        setComments(data.comments || []);
+        setTotalComments(data.totalComments || 0);
+        setLastMonthComments(data.lastMonthComments || 0);
       });
     }
-  }, [currentUser]);
+  }, [currentUser, backendBase]);
 
   const dateRange = `${formatDate(currentUser?.createdAt)} - ${formatDate(new Date())}`;
 
@@ -187,7 +201,7 @@ const MainDashboard = () => {
           </Table>
         </div>
 
-        {/* Recent Posts - UPDATED TO REMOVE SCROLLBAR & FIX TITLE */}
+        {/* Recent Posts */}
         <div className="flex flex-col shadow-sm rounded-lg border bg-card text-card-foreground overflow-hidden h-[320px] w-full">
           <div className="flex justify-between items-center px-4 py-2 border-b">
             <h1 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">

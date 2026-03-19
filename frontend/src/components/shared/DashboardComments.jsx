@@ -10,10 +10,14 @@ const DashboardComments = () => {
   const [showMore, setShowMore] = useState(true);
   const [commentIdToDelete, setCommentIdToDelete] = useState("");
 
+  // Get the backend URL from .env
+  const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
+
   useEffect(() => {
     const fetchComments = async () => {
       try {
-        const res = await fetch(`/api/comment/getcomments`);
+        // UPDATED: Added backendBase
+        const res = await fetch(`${backendBase}/api/comment/getcomments`);
         const data = await res.json();
         if (res.ok) {
           const fetchedComments = data.comments || data;
@@ -27,12 +31,13 @@ const DashboardComments = () => {
       }
     };
     if (currentUser?.isAdmin) fetchComments();
-  }, [currentUser?._id, currentUser?.isAdmin]);
+  }, [currentUser?._id, currentUser?.isAdmin, backendBase]);
 
   const handleShowMore = async () => {
     const startIndex = comments.length;
     try {
-      const res = await fetch(`/api/comment/getcomments?startIndex=${startIndex}`);
+      // UPDATED: Added backendBase
+      const res = await fetch(`${backendBase}/api/comment/getcomments?startIndex=${startIndex}`);
       const data = await res.json();
       if (res.ok) {
         const newComments = data.comments || data;
@@ -46,7 +51,10 @@ const DashboardComments = () => {
 
   const handleDeleteComment = async () => {
     try {
-      const res = await fetch(`/api/comment/deleteComment/${commentIdToDelete}`, { method: "DELETE" });
+      // UPDATED: Added backendBase
+      const res = await fetch(`${backendBase}/api/comment/deleteComment/${commentIdToDelete}`, { 
+        method: "DELETE" 
+      });
       if (res.ok) {
         setComments((prev) => prev.filter((c) => c._id !== commentIdToDelete));
         toast.success("Comment deleted");

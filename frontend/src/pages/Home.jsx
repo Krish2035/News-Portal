@@ -6,15 +6,14 @@ const Home = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
+
   useEffect(() => {
     const fetchPosts = async () => {
       try {
         setLoading(true);
-        // 🚨 FALLBACK: If VITE_API_URL is not set in .env, use your absolute Backend URL
-        const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
         const res = await fetch(`${backendBase}/api/post/getposts?limit=9`);
 
-        // Check if the response is valid JSON before parsing to avoid "Unexpected token T"
         const contentType = res.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
           const data = await res.json();
@@ -33,7 +32,7 @@ const Home = () => {
       }
     };
     fetchPosts();
-  }, []);
+  }, [backendBase]);
 
   return (
     <div className="min-h-screen bg-slate-50">

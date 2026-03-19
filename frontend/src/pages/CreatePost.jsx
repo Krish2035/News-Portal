@@ -19,6 +19,9 @@ const CreatePost = () => {
   });
   const [publishError, setPublishError] = useState(null);
 
+  // Get the backend URL from .env
+  const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
+
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (!selectedFile) return;
@@ -39,7 +42,6 @@ const CreatePost = () => {
       const uploadedFile = await uploadFile(file);
       const previewRes = getFileView(uploadedFile.$id);
       
-      // Clean up the URL for Appwrite Free Tier
       let postImageUrl = previewRes.href || previewRes.toString();
       if (postImageUrl.includes('/preview')) {
         postImageUrl = postImageUrl.replace('/preview', '/view');
@@ -61,7 +63,9 @@ const CreatePost = () => {
 
     try {
       setPublishError(null);
-      const res = await fetch("/api/post/create", {
+      
+      // UPDATED: Using backendBase to ensure post goes to the live database
+      const res = await fetch(`${backendBase}/api/post/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

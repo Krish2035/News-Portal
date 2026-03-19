@@ -8,20 +8,28 @@ const PostDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [post, setPost] = useState(null);
-  const [recentPosts, setRecentPosts] = useState(null);
+  const [recentPosts, setRecentPosts] = useState([]);
 
-  // 1. Dynamic Backend URL Logic (Critical for Vercel deployment)
+  // Dynamic Backend URL Logic
   const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
   const cleanBase = backendBase.endsWith('/') ? backendBase.slice(0, -1) : backendBase;
 
+  /**
+   * Helper to ensure images load correctly from Appwrite or local backend storage
+   */
   const getSafeImageUrl = (url) => {
     if (!url) return "https://placehold.co/1200x600/e2e8f0/1e293b?text=News+Nova";
+    
+    // If it's a relative path from a local backend
     if (url.startsWith("/uploads")) {
       return `${cleanBase}${url}`;
     }
+    
+    // If it's an Appwrite URL, ensure it uses /view for public display
     if (url.includes('appwrite.io')) {
       return url.replace('/preview', '/view');
     }
+    
     return url;
   };
 
@@ -29,7 +37,7 @@ const PostDetails = () => {
     const fetchPost = async () => {
       try {
         setLoading(true);
-        // FIXED: Using absolute URL to ensure it hits your backend API
+        // Absolute URL fetch to bypass proxy issues on Vercel
         const res = await fetch(`${cleanBase}/api/post/getposts?slug=${postSlug}`);
         const data = await res.json();
         
@@ -60,7 +68,7 @@ const PostDetails = () => {
           setRecentPosts(data.posts);
         }
       } catch (error) {
-        console.log(error.message);
+        console.log("Recent Posts Fetch Error:", error.message);
       }
     };
     fetchRecentPosts();
@@ -91,7 +99,7 @@ const PostDetails = () => {
       </h1>
 
       <Link to={`/search?category=${post.category}`} className="self-center mt-5">
-        <Button className="bg-slate-100 text-slate-800 hover:bg-red-600 hover:text-white transition-all uppercase text-xs font-bold px-4 py-1 rounded-full">
+        <Button className="bg-slate-100 text-slate-800 hover:bg-red-600 hover:text-white transition-all uppercase text-xs font-bold px-4 py-1 rounded-full border border-slate-200">
           {post.category || "General"}
         </Button>
       </Link>
@@ -106,11 +114,11 @@ const PostDetails = () => {
       <div className="flex justify-between p-3 border-b border-slate-300 mx-auto w-full max-w-2xl text-xs sm:text-sm font-semibold text-slate-500 italic">
         <span>{new Date(post.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
         <span className="text-red-600">
-          {Math.ceil(post.content.replace(/<[^>]*>/g, '').split(/\s+/).length / 200)} min read
+          {post.content ? Math.ceil(post.content.replace(/<[^>]*>/g, '').split(/\s+/).length / 200) : 0} min read
         </span>
       </div>
 
-      {/* Main Content with Typography Fixes */}
+      {/* Main Content */}
       <div
         className="p-3 max-w-3xl mx-auto w-full post-content 
                    leading-relaxed text-slate-800 
@@ -124,9 +132,11 @@ const PostDetails = () => {
       <div className="flex flex-col justify-center items-center mb-10">
         <h2 className="text-2xl font-bold mb-8 text-slate-900">Recent Stories in News Nova</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full px-4">
-          {recentPosts &&
+          {recentPosts && recentPosts.length > 0 &&
             recentPosts.map((recentPost) => (
-              <PostCard key={recentPost._id} post={recentPost} />
+              <div key={recentPost._id} className="transition-transform hover:scale-105 duration-300">
+                <PostCard post={recentPost} />
+              </div>
             ))}
         </div>
       </div>
