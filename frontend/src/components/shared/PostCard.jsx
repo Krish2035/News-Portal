@@ -3,22 +3,24 @@ import { Link } from "react-router-dom";
 
 /**
  * PostCard Component
- * Renders an individual news post with optimized image handling and metadata.
+ * Features optimized image sanitization for Appwrite/Local backends, 
+ * accurate reading time calculation, and interactive Tailwind UI.
  */
 const PostCard = ({ post }) => {
+  
   // 1. Image URL Sanitization Logic
   const getSafeImageUrl = (url) => {
+    // Fallback if no URL is provided at all
     if (!url) return "https://placehold.co/600x400/e2e8f0/1e293b?text=News+Nova";
 
     // Handle local/backend uploads
     if (url.startsWith("/uploads")) {
       const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
-      // Ensure no double slashes if backendBase ends with /
       const cleanBase = backendBase.endsWith('/') ? backendBase.slice(0, -1) : backendBase;
       return `${cleanBase}${url}`;
     }
 
-    // Handle Appwrite specific transformations
+    // Handle Appwrite specific transformations (Preview vs View)
     if (url.includes('appwrite.io')) {
       try {
         const urlObj = new URL(url);
@@ -35,12 +37,12 @@ const PostCard = ({ post }) => {
   };
 
   // 2. Metadata Calculations
-  // Strips HTML tags before counting words for an accurate reading time
+  // Strips HTML tags (from Gemini/Rich Text) before counting words
   const readingTime = post.content 
     ? Math.ceil(post.content.replace(/<[^>]*>/g, '').split(/\s+/).length / 200) 
     : 1;
 
-  // Formats date safely to prevent crashes on invalid strings
+  // Formats date safely for a professional look
   const formattedDate = post.createdAt 
     ? new Date(post.createdAt).toLocaleDateString('en-US', { 
         month: 'short', 
@@ -52,14 +54,14 @@ const PostCard = ({ post }) => {
   return (
     <div className="group relative w-full border border-slate-300 rounded-2xl bg-white overflow-hidden flex flex-col h-full shadow-sm hover:shadow-xl transition-all duration-500">
       
-      {/* Category Badge */}
+      {/* Category Badge - Changes color on group hover */}
       <div className="absolute top-4 left-4 z-10">
         <span className="bg-blue-600 text-white text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg shadow-lg tracking-wider group-hover:bg-red-600 transition-colors duration-300">
           {post.category || 'General'}
         </span>
       </div>
 
-      {/* Image Container */}
+      {/* Image Container with Zoom Effect */}
       <Link to={`/post/${post.slug}`} className="h-[220px] w-full block overflow-hidden bg-slate-200">
         <img
           src={getSafeImageUrl(post.image)}
@@ -67,6 +69,7 @@ const PostCard = ({ post }) => {
           className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700 ease-in-out"
           loading="lazy"
           onError={(e) => {
+            // Prevent infinite loop if the placeholder also fails
             e.target.onerror = null; 
             e.target.src = "https://placehold.co/600x400/e2e8f0/1e293b?text=Image+Not+Found";
           }}
@@ -87,6 +90,7 @@ const PostCard = ({ post }) => {
               {formattedDate}
             </span>
             <span className="flex items-center gap-1.5 text-slate-500">
+              {/* Decorative pulse indicator */}
               <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
               {readingTime} min read
             </span>
@@ -106,7 +110,7 @@ const PostCard = ({ post }) => {
 
 /**
  * Loading Placeholder (Skeleton)
- * Use this in your parent component while fetching data.
+ * Used for the 'Lumina' style loading state.
  */
 export const PostCardSkeleton = () => (
   <div className="w-full border border-slate-200 rounded-2xl bg-white overflow-hidden flex flex-col h-full animate-pulse">

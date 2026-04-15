@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { Table, TableBody, TableCaption, TableHeader, TableRow, TableHead, TableCell } from "../ui/table";
+import { Table, TableBody, TableHeader, TableRow, TableHead, TableCell } from "../ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
@@ -10,39 +10,40 @@ const DashboardComments = () => {
   const [showMore, setShowMore] = useState(true);
   const [commentIdToDelete, setCommentIdToDelete] = useState("");
 
-  // Get the backend URL from .env
   const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
 
   useEffect(() => {
     const fetchComments = async () => {
       try {
-        // UPDATED: Added backendBase
-        const res = await fetch(`${backendBase}/api/comment/getcomments`);
+        const res = await fetch(`${backendBase}/api/comment/getcomments`, {
+          method: "GET",
+          credentials: "include",
+        });
         const data = await res.json();
         if (res.ok) {
-          const fetchedComments = data.comments || data;
-          if (Array.isArray(fetchedComments)) {
-            setComments(fetchedComments);
-            if (fetchedComments.length < 9) setShowMore(false);
-          }
+          setComments(data.comments);
+          if (data.comments.length < 9) setShowMore(false);
+        } else {
+          toast.error(data.message || "Failed to fetch comments");
         }
       } catch (error) {
         console.error("Error fetching comments:", error.message);
       }
     };
     if (currentUser?.isAdmin) fetchComments();
-  }, [currentUser?._id, currentUser?.isAdmin, backendBase]);
+  }, [currentUser?._id, backendBase]);
 
   const handleShowMore = async () => {
     const startIndex = comments.length;
     try {
-      // UPDATED: Added backendBase
-      const res = await fetch(`${backendBase}/api/comment/getcomments?startIndex=${startIndex}`);
+      const res = await fetch(`${backendBase}/api/comment/getcomments?startIndex=${startIndex}`, {
+        method: "GET",
+        credentials: "include",
+      });
       const data = await res.json();
       if (res.ok) {
-        const newComments = data.comments || data;
-        setComments((prev) => [...prev, ...newComments]);
-        if (newComments.length < 9) setShowMore(false);
+        setComments((prev) => [...prev, ...data.comments]);
+        if (data.comments.length < 9) setShowMore(false);
       }
     } catch (error) {
       console.error(error.message);
@@ -51,13 +52,16 @@ const DashboardComments = () => {
 
   const handleDeleteComment = async () => {
     try {
-      // UPDATED: Added backendBase
       const res = await fetch(`${backendBase}/api/comment/deleteComment/${commentIdToDelete}`, { 
-        method: "DELETE" 
+        method: "DELETE",
+        credentials: "include",
       });
+      const data = await res.json();
       if (res.ok) {
         setComments((prev) => prev.filter((c) => c._id !== commentIdToDelete));
-        toast.success("Comment deleted");
+        toast.success(data.message || "Comment deleted");
+      } else {
+        toast.error(data.message || "Delete failed");
       }
     } catch (error) {
       toast.error("An error occurred");
@@ -106,11 +110,11 @@ const DashboardComments = () => {
             </TableBody>
           </Table>
           {showMore && (
-            <button onClick={handleShowMore} className="w-full text-blue-700 py-7 text-sm">Show More</button>
+            <button onClick={handleShowMore} className="w-full text-blue-700 py-7 text-sm font-semibold">Show More</button>
           )}
         </>
       ) : (
-        <div className="mt-10 text-gray-500 italic">No comments found.</div>
+        <div className="mt-10 text-gray-400 italic font-medium">No comments found in database.</div>
       )}
     </div>
   );

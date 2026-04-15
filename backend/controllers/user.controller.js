@@ -17,8 +17,12 @@ export const updateUser = async (req, res, next) => {
 
   if (req.body.username) {
     const username = req.body.username.toLowerCase();
-    if (username.length < 5 || username.length > 20) return next(errorHandler(400, "Username 5-20 chars"));
-    if (username.includes(" ")) return next(errorHandler(400, "No spaces allowed"));
+    if (username.length < 5 || username.length > 20) {
+      return next(errorHandler(400, "Username must be between 5 and 20 characters"));
+    }
+    if (username.includes(" ")) {
+      return next(errorHandler(400, "Username cannot contain spaces"));
+    }
     updateData.username = username;
   }
 
@@ -31,6 +35,9 @@ export const updateUser = async (req, res, next) => {
       { $set: updateData },
       { new: true, runValidators: true }
     );
+    
+    if (!updatedUser) return next(errorHandler(404, "User not found"));
+    
     const { password, ...rest } = updatedUser.toObject();
     res.status(200).json(rest);
   } catch (error) {
@@ -40,12 +47,13 @@ export const updateUser = async (req, res, next) => {
 
 export const deleteUser = async (req, res, next) => {
   if (!req.user.isAdmin && req.user.id !== req.params.userId) {
-    return next(errorHandler(403, "Not authorized"));
+    return next(errorHandler(403, "Not authorized to delete this user"));
   }
   try {
-    await User.findByIdAndDelete(req.params.userId);
-    // PRODUCTION FIX: Return JSON, not a raw string
-    res.status(200).json({ message: "User has been deleted" });
+    const deletedUser = await User.findByIdAndDelete(req.params.userId);
+    if (!deletedUser) return next(errorHandler(404, "User not found"));
+    
+    res.status(200).json({ success: true, message: "User has been deleted" });
   } catch (error) {
     next(error);
   }
@@ -56,29 +64,44 @@ export const signout = async (req, res, next) => {
     res
       .clearCookie("access_token", {
         httpOnly: true,
-        secure: true, 
-        sameSite: "none", 
+        secure: true, // Required for HTTPS/Vercel
+        sameSite: "none", // Required for cross-site cookie clearing
         path: "/",
       })
       .status(200)
-      // PRODUCTION FIX: Return JSON object
-      .json({ message: "Signed out successfully" });
+      .json({ success: true, message: "Signed out successfully" });
   } catch (error) {
     next(error);
   }
 };
 
 export const getUsers = async (req, res, next) => {
-  if (!req.user.isAdmin) return next(errorHandler(403, "Admin only"));
+  if (!req.user.isAdmin) return next(errorHandler(403, "Admin privileges required"));
   try {
     const startIndex = parseInt(req.query.startIndex) || 0;
     const limit = parseInt(req.query.limit) || 9;
-    const users = await User.find().skip(startIndex).limit(limit);
+    const sortDirection = req.query.sort === "asc" ? 1 : -1;
+
+    const users = await User.find()
+      .sort({ createdAt: sortDirection })
+      .skip(startIndex)
+      .limit(limit);
+
     const usersWithoutPassword = users.map((u) => {
       const { password, ...rest } = u.toObject();
       return rest;
     });
-    res.status(200).json({ users: usersWithoutPassword });
+
+    const totalUsers = await User.countDocuments();
+    const now = new Date();
+    const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+    const lastMonthUsers = await User.countDocuments({ createdAt: { $gte: oneMonthAgo } });
+
+    res.status(200).json({ 
+      users: usersWithoutPassword, 
+      totalUsers, 
+      lastMonthUsers 
+    });
   } catch (error) {
     next(error);
   }

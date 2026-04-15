@@ -4,7 +4,9 @@ import { errorHandler } from "../utils/error.js";
 export const createComment = async (req, res, next) => {
   try {
     const { content, postId, userId } = req.body;
-    if (userId !== req.user.id) return next(errorHandler(403, "Unauthorized"));
+    if (userId !== req.user.id) {
+      return next(errorHandler(403, "You are not allowed to create this comment"));
+    }
     const newComment = new Comment({ content, postId, userId });
     await newComment.save();
     res.status(200).json(newComment);
@@ -25,7 +27,8 @@ export const getPostComments = async (req, res, next) => {
 export const likeComment = async (req, res, next) => {
   try {
     const comment = await Comment.findById(req.params.commentId);
-    if (!comment) return next(errorHandler(404, "Not found"));
+    if (!comment) return next(errorHandler(404, "Comment not found"));
+    
     const userIndex = comment.likes.indexOf(req.user.id);
     if (userIndex === -1) {
       comment.numberOfLikes += 1;
@@ -44,8 +47,11 @@ export const likeComment = async (req, res, next) => {
 export const editComment = async (req, res, next) => {
   try {
     const comment = await Comment.findById(req.params.commentId);
-    if (!comment) return next(errorHandler(404, "Not found"));
-    if (comment.userId !== req.user.id && !req.user.isAdmin) return next(errorHandler(403, "Unauthorized"));
+    if (!comment) return next(errorHandler(404, "Comment not found"));
+    
+    if (comment.userId !== req.user.id && !req.user.isAdmin) {
+      return next(errorHandler(403, "You are not allowed to edit this comment"));
+    }
     
     const editedComment = await Comment.findByIdAndUpdate(
       req.params.commentId,
@@ -61,25 +67,42 @@ export const editComment = async (req, res, next) => {
 export const deleteComment = async (req, res, next) => {
   try {
     const comment = await Comment.findById(req.params.commentId);
-    if (!comment) return next(errorHandler(404, "Not found"));
-    if (comment.userId !== req.user.id && !req.user.isAdmin) return next(errorHandler(403, "Unauthorized"));
+    if (!comment) return next(errorHandler(404, "Comment not found"));
+    
+    if (comment.userId !== req.user.id && !req.user.isAdmin) {
+      return next(errorHandler(403, "You are not allowed to delete this comment"));
+    }
+    
     await Comment.findByIdAndDelete(req.params.commentId);
-    res.status(200).json("Deleted");
+    // Standardized JSON response
+    res.status(200).json({ success: true, message: "Comment has been deleted" });
   } catch (error) {
     next(error);
   }
 };
 
 export const getComments = async (req, res, next) => {
-  if (!req.user.isAdmin) return next(errorHandler(403, "Unauthorized"));
+  if (!req.user.isAdmin) return next(errorHandler(403, "Unauthorized access"));
   try {
     const startIndex = parseInt(req.query.startIndex) || 0;
     const limit = parseInt(req.query.limit) || 9;
-    const comments = await Comment.find().sort({ createdAt: -1 }).skip(startIndex).limit(limit);
+    const sortDirection = req.query.sort === "asc" ? 1 : -1;
+
+    const comments = await Comment.find()
+      .sort({ createdAt: sortDirection })
+      .skip(startIndex)
+      .limit(limit);
+
     const totalComments = await Comment.countDocuments();
-    const oneMonthAgo = new Date(new Date().setMonth(new Date().getMonth() - 1));
+    const now = new Date();
+    const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
     const lastMonthComments = await Comment.countDocuments({ createdAt: { $gte: oneMonthAgo } });
-    res.status(200).json({ comments, totalComments, lastMonthComments });
+
+    res.status(200).json({ 
+      comments, 
+      totalComments, 
+      lastMonthComments 
+    });
   } catch (error) {
     next(error);
   }

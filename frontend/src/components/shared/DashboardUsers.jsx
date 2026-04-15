@@ -12,31 +12,38 @@ const DashboardUsers = () => {
   const [showMore, setShowMore] = useState(true);
   const [userIdToDelete, setUserIdToDelete] = useState("");
 
-  // Get the backend URL from .env
   const backendBase = import.meta.env.VITE_API_URL || "https://news-portal-7g52.vercel.app";
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        // UPDATED: Added backendBase
-        const res = await fetch(`${backendBase}/api/user/getusers`);
+        // MANDATORY: credentials: "include" sends the cookie for authentication
+        const res = await fetch(`${backendBase}/api/user/getusers`, {
+          method: "GET",
+          credentials: "include", 
+        });
         const data = await res.json();
+        
         if (res.ok) {
           setUsers(data.users);
           if (data.users.length < 9) setShowMore(false);
+        } else {
+          toast.error(data.message || "Failed to fetch users");
         }
       } catch (error) {
-        console.error("Error fetching users:", error.message);
+        console.error("Fetch error:", error.message);
       }
     };
     if (currentUser?.isAdmin) fetchUsers();
-  }, [currentUser._id, currentUser?.isAdmin, backendBase]);
+  }, [currentUser?._id, backendBase]);
 
   const handleShowMore = async () => {
     const startIndex = users.length;
     try {
-      // UPDATED: Added backendBase
-      const res = await fetch(`${backendBase}/api/user/getusers?startIndex=${startIndex}`);
+      const res = await fetch(`${backendBase}/api/user/getusers?startIndex=${startIndex}`, {
+        method: "GET",
+        credentials: "include",
+      });
       const data = await res.json();
       if (res.ok) {
         setUsers((prev) => [...prev, ...data.users]);
@@ -49,13 +56,16 @@ const DashboardUsers = () => {
 
   const handleDeleteUser = async () => {
     try {
-      // UPDATED: Added backendBase
       const res = await fetch(`${backendBase}/api/user/delete/${userIdToDelete}`, { 
-        method: "DELETE" 
+        method: "DELETE",
+        credentials: "include",
       });
+      const data = await res.json();
       if (res.ok) {
         setUsers((prev) => prev.filter((u) => u._id !== userIdToDelete));
-        toast.success("User deleted");
+        toast.success(data.message || "User deleted");
+      } else {
+        toast.error(data.message || "Delete failed");
       }
     } catch (error) {
       console.error(error.message);
@@ -67,7 +77,7 @@ const DashboardUsers = () => {
       {currentUser?.isAdmin && users.length > 0 ? (
         <>
           <Table>
-            <TableCaption>A list of your recent subscribers.</TableCaption>
+            <TableCaption>A list of your registered users.</TableCaption>
             <TableHeader>
               <TableRow>
                 <TableHead>Joined On</TableHead>
@@ -75,7 +85,7 @@ const DashboardUsers = () => {
                 <TableHead>Username</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Admin</TableHead>
-                <TableHead>Delete</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y">
@@ -110,11 +120,11 @@ const DashboardUsers = () => {
             </TableBody>
           </Table>
           {showMore && (
-            <button onClick={handleShowMore} className="w-full text-blue-700 py-7 text-sm">Show More</button>
+            <button onClick={handleShowMore} className="w-full text-blue-700 py-7 text-sm font-semibold">Show More</button>
           )}
         </>
       ) : (
-        <p className="mt-10">No users found.</p>
+        <p className="mt-10 text-gray-400 italic font-medium">No users found or unauthorized access.</p>
       )}
     </div>
   );
