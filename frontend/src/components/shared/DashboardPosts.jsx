@@ -35,6 +35,7 @@ const DashboardPosts = () => {
     try {
       const res = await fetch(`${backendBase}/api/post/deletepost/${postIdToDelete}/${currentUser._id}`, {
         method: "DELETE",
+        credentials: "include",
       });
       const data = await res.json();
       if (res.ok) {
