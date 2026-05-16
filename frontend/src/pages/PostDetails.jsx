@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import PostCard from "@/components/shared/PostCard";
+import CommentSection from "@/components/shared/CommentSection";
 
 const PostDetails = () => {
   const { postSlug } = useParams();
@@ -125,6 +126,11 @@ const PostDetails = () => {
                    break-normal whitespace-normal text-lg"
         dangerouslySetInnerHTML={{ __html: post.content }}
       ></div>
+
+      <hr className="border-slate-200 my-10" />
+
+      {/* Comment Section */}
+      <CommentSection postId={post._id} />
 
       <hr className="border-slate-200 my-10" />
 

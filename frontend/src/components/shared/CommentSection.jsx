@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Textarea } from "../ui/textarea";
 import { toast } from "sonner";
 import Comment from "./Comment";
+import apiRequest from "@/utils/api";
 
 const CommentSection = ({ postId }) => {
   const { currentUser } = useSelector((state) => state.user);
@@ -29,11 +30,8 @@ const CommentSection = ({ postId }) => {
   useEffect(() => {
     const getComments = async () => {
       try {
-        const res = await fetch(`/api/comment/getPostComments/${postId}`);
-        if (res.ok) {
-          const data = await res.json();
-          setAllComments(data);
-        }
+        const data = await apiRequest(`/api/comment/getPostComments/${postId}`);
+        setAllComments(data);
       } catch (error) {
         console.error("Error fetching comments:", error);
       }
@@ -49,26 +47,20 @@ const CommentSection = ({ postId }) => {
     }
 
     try {
-      const res = await fetch("/api/comment/create", {
+      const data = await apiRequest("/api/comment/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           content: comment,
           postId,
           userId: currentUser._id,
-        }),
+        },
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        setComment("");
-        toast.success("Comment added successfully!");
-        setAllComments([data, ...allComments]);
-      } else {
-        toast.error(data.message || "Failed to post comment");
-      }
+      setComment("");
+      toast.success("Comment added successfully!");
+      setAllComments([data, ...allComments]);
     } catch (error) {
-      toast.error("Something went wrong!");
+      toast.error(error.message || "Something went wrong!");
     }
   };
 
@@ -78,24 +70,21 @@ const CommentSection = ({ postId }) => {
         navigate("/sign-in");
         return;
       }
-      const res = await fetch(`/api/comment/likeComment/${commentId}`, {
+      const data = await apiRequest(`/api/comment/likeComment/${commentId}`, {
         method: "PUT",
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setAllComments(
-          allComments.map((comment) =>
-            comment._id === commentId
-              ? {
-                  ...comment,
-                  likes: data.likes,
-                  numberOfLikes: data.likes.length,
-                }
-              : comment,
-          ),
-        );
-      }
+      setAllComments(
+        allComments.map((comment) =>
+          comment._id === commentId
+            ? {
+                ...comment,
+                likes: data.likes,
+                numberOfLikes: data.likes.length,
+              }
+            : comment,
+        ),
+      );
     } catch (error) {
       console.error(error.message);
     }
@@ -115,14 +104,12 @@ const CommentSection = ({ postId }) => {
         navigate("/sign-in");
         return;
       }
-      const res = await fetch(`/api/comment/deleteComment/${commentId}`, {
+      await apiRequest(`/api/comment/deleteComment/${commentId}`, {
         method: "DELETE",
       });
 
-      if (res.ok) {
-        setAllComments(allComments.filter((c) => c._id !== commentId));
-        toast.success("Comment deleted");
-      }
+      setAllComments(allComments.filter((c) => c._id !== commentId));
+      toast.success("Comment deleted");
     } catch (error) {
       console.error(error.message);
     }

@@ -109,155 +109,161 @@ const MainDashboard = () => {
       </div>
 
       {/* --- LOWER SECTION: RECENT TABLES --- */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 w-full items-start">
         {/* Recent Users */}
-        <div className="flex flex-col shadow-sm rounded-lg border bg-card text-card-foreground overflow-hidden h-[320px]">
-          <div className="flex justify-between items-center px-4 py-2 border-b">
-            <h1 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <div className="flex flex-col shadow-sm rounded-2xl border bg-white overflow-hidden h-[360px] transition-all hover:shadow-md">
+          <div className="flex justify-between items-center px-5 py-4 border-b bg-slate-50/50">
+            <h1 className="text-xs font-extrabold uppercase tracking-widest text-slate-500">
               Recent Users
             </h1>
             <Button
               size="sm"
               variant="outline"
-              className="h-6 text-[10px] bg-slate-700 text-white hover:bg-slate-800"
+              className="h-7 text-[10px] font-bold bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg shadow-sm"
               asChild
             >
               <Link to="/dashboard?tab=users">See all</Link>
             </Button>
           </div>
-          <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead className="px-4 py-1.5 h-auto">User image</TableHead>
-                <TableHead className="px-4 py-1.5 h-auto">Username</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow
-                  key={user._id}
-                  className="hover:bg-muted/50 transition-colors"
-                >
-                  <TableCell className="px-4 py-1.5">
-                    <img
-                      src={user.profilePicture}
-                      className="w-7 h-7 rounded-full object-cover border"
-                      alt={user.username}
-                    />
-                  </TableCell>
-                  <TableCell className="px-4 py-1.5 text-xs font-medium truncate max-w-[100px]">
-                    {user.username}
-                  </TableCell>
+          <div className="overflow-x-auto scrollbar-hide">
+            <Table>
+              <TableHeader className="bg-slate-50">
+                <TableRow>
+                  <TableHead className="px-5 py-3 text-[10px] font-bold uppercase text-slate-400">User image</TableHead>
+                  <TableHead className="px-5 py-3 text-[10px] font-bold uppercase text-slate-400">Username</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow
+                    key={user._id}
+                    className="hover:bg-slate-50/50 transition-colors border-slate-100"
+                  >
+                    <TableCell className="px-5 py-3">
+                      <img
+                        src={user.profilePicture}
+                        className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-sm"
+                        alt={user.username}
+                      />
+                    </TableCell>
+                    <TableCell className="px-5 py-3 text-xs font-bold text-slate-700 truncate">
+                      @{user.username}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
 
         {/* Recent Comments */}
-        <div className="flex flex-col shadow-sm rounded-lg border bg-card text-card-foreground overflow-hidden h-[320px]">
-          <div className="flex justify-between items-center px-4 py-2 border-b">
-            <h1 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <div className="flex flex-col shadow-sm rounded-2xl border bg-white overflow-hidden h-[360px] transition-all hover:shadow-md">
+          <div className="flex justify-between items-center px-5 py-4 border-b bg-slate-50/50">
+            <h1 className="text-xs font-extrabold uppercase tracking-widest text-slate-500">
               Recent Comments
             </h1>
             <Button
               size="sm"
               variant="outline"
-              className="h-6 text-[10px] bg-slate-700 text-white hover:bg-slate-800"
+              className="h-7 text-[10px] font-bold bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg shadow-sm"
               asChild
             >
               <Link to="/dashboard?tab=comments">See all</Link>
             </Button>
           </div>
-          <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead className="px-4 py-1.5 h-auto">Comment</TableHead>
-                <TableHead className="px-4 py-1.5 h-auto text-right">
-                  Likes
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {comments &&
-                comments.map((comment) => (
-                  <TableRow
-                    key={comment._id}
-                    className="hover:bg-muted/50 transition-colors"
-                  >
-                    <TableCell className="px-4 py-1.5">
-                      <div className="max-h-10 overflow-hidden text-[11px] text-slate-600 dark:text-gray-300">
-                        <p className="line-clamp-2 leading-tight break-words">
-                          {comment.content}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-4 py-1.5 text-xs text-right">
-                      {comment.numberOfLikes}
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto scrollbar-hide">
+            <Table>
+              <TableHeader className="bg-slate-50">
+                <TableRow>
+                  <TableHead className="px-5 py-3 text-[10px] font-bold uppercase text-slate-400">Comment</TableHead>
+                  <TableHead className="px-5 py-3 text-[10px] font-bold uppercase text-slate-400 text-right">
+                    Likes
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {comments &&
+                  comments.map((comment) => (
+                    <TableRow
+                      key={comment._id}
+                      className="hover:bg-slate-50/50 transition-colors border-slate-100"
+                    >
+                      <TableCell className="px-5 py-3">
+                        <div className="text-[11px] text-slate-600 font-medium">
+                          <p className="line-clamp-2 leading-snug">
+                            {comment.content}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-5 py-3 text-xs text-right font-bold text-blue-600">
+                        {comment.numberOfLikes}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
 
         {/* Recent Posts */}
-        <div className="flex flex-col shadow-sm rounded-lg border bg-card text-card-foreground overflow-hidden h-[320px] w-full">
-          <div className="flex justify-between items-center px-4 py-2 border-b">
-            <h1 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <div className="flex flex-col shadow-sm rounded-2xl border bg-white overflow-hidden h-[360px] w-full transition-all hover:shadow-md">
+          <div className="flex justify-between items-center px-5 py-4 border-b bg-slate-50/50">
+            <h1 className="text-xs font-extrabold uppercase tracking-widest text-slate-500">
               Recent Posts
             </h1>
             <Button
               size="sm"
               variant="outline"
-              className="h-6 text-[10px] bg-slate-700 text-white hover:bg-slate-800"
+              className="h-7 text-[10px] font-bold bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg shadow-sm"
               asChild
             >
               <Link to="/dashboard?tab=posts">See all</Link>
             </Button>
           </div>
-          <Table className="table-fixed w-full">
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead className="w-[65px] px-3 py-1.5 h-auto text-[10px]">
-                  Image
-                </TableHead>
-                <TableHead className="px-3 py-1.5 h-auto text-[10px]">
-                  Title
-                </TableHead>
-                <TableHead className="w-[85px] px-3 py-1.5 h-auto text-[10px]">
-                  Category
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {posts &&
-                posts.map((post) => (
-                  <TableRow
-                    key={post._id}
-                    className="hover:bg-muted/50 transition-colors"
-                  >
-                    <TableCell className="px-3 py-1.5">
-                      <img
-                        src={post.image}
-                        className="w-8 h-8 rounded-md object-cover border"
-                        alt={post.title}
-                      />
-                    </TableCell>
-                    <TableCell className="px-3 py-1.5">
-                      <p className="text-[11px] font-semibold leading-tight text-slate-700 line-clamp-2">
-                        {post.title}
-                      </p>
-                    </TableCell>
-                    <TableCell className="px-3 py-1.5">
-                      <span className="text-[9px] bg-slate-100 px-2 py-0.5 rounded-full text-slate-500 font-medium truncate block">
-                        {post.category}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto scrollbar-hide">
+            <Table className="table-fixed w-full min-w-[300px]">
+              <TableHeader className="bg-slate-50">
+                <TableRow>
+                  <TableHead className="w-[80px] px-5 py-3 text-[10px] font-bold uppercase text-slate-400">
+                    Image
+                  </TableHead>
+                  <TableHead className="px-5 py-3 text-[10px] font-bold uppercase text-slate-400">
+                    Title
+                  </TableHead>
+                  <TableHead className="w-[100px] px-5 py-3 text-[10px] font-bold uppercase text-slate-400">
+                    Category
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {posts &&
+                  posts.map((post) => (
+                    <TableRow
+                      key={post._id}
+                      className="hover:bg-slate-50/50 transition-colors border-slate-100"
+                    >
+                      <TableCell className="px-5 py-3">
+                        <img
+                          src={post.image}
+                          className="w-10 h-7 rounded-md object-cover border shadow-sm"
+                          alt={post.title}
+                        />
+                      </TableCell>
+                      <TableCell className="px-5 py-3">
+                        <p className="text-[11px] font-bold leading-tight text-slate-800 line-clamp-2">
+                          {post.title}
+                        </p>
+                      </TableCell>
+                      <TableCell className="px-5 py-3">
+                        <span className="text-[9px] bg-blue-50 text-blue-600 px-2 py-1 rounded-md font-bold uppercase tracking-tighter truncate block text-center">
+                          {post.category}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </div>
     </div>
